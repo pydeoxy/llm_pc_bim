@@ -1,6 +1,17 @@
 # llm_pc_bim
 
+## Chatbot for AEC Documentation
 
+### Features
+- IFC model analysis
+- Point cloud processing
+- Document retrieval
+- Expandable architecture
+
+### Quick Start
+```bash
+pip install -r requirements.txt
+python app.py
 
 
   ## **File Structure**

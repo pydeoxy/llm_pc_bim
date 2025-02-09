@@ -1,0 +1,7 @@
+# .gitignore
+.env
+*.ifc
+*.ply
+*.pcd
+__pycache__/
+models/

@@ -1,3 +1,6 @@
 ifcopenshell
 gradio
 transformers
+haystack-ai
+python-dotenv
+sentence-transformers
