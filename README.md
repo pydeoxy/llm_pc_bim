@@ -12,9 +12,9 @@
 ```bash
 pip install -r requirements.txt
 python app.py
+  ```
 
-
-  ## **File Structure**
+## **File Structure**
 
 To ensure modularity, scalability, and maintainability, the project is organized as follows:
 ```
