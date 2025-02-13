@@ -2,6 +2,8 @@ import gradio as gr
 import re
 from haystack import Pipeline
 from pathlib import Path
+from tools import ifc_tool, seg_tool
+from pipelines import doc_pipeline
 
 # Previous imports and components remain the same
 # Add these new components:
@@ -108,7 +110,7 @@ def chat_response(message, history, ifc_path, pc_path, docs_folder):
     
     # Document handling
     if docs_folder and ("project" in message.lower() or "document" in message.lower()):
-        result = project_pipeline.run(query=message)
+        result = doc_pipeline.run(query=message)
         return result["answers"][0] if result["answers"] else "No information found"
     
     # Fallback to web search

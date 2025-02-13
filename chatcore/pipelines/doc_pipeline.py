@@ -1,14 +1,17 @@
 from haystack import Pipeline
-from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
+from haystack.components.retrievers.in_memory import InMemoryEmbeddingRetriever
 from haystack.components.generators import HuggingFaceLocalGenerator
 from haystack.components.builders import PromptBuilder
-from duckduckgo_api_haystack import DuckduckgoApiWebSearch
 from typing import Dict, Any
+
+from haystack.components.embedders import SentenceTransformersTextEmbedder
+text_embedder = SentenceTransformersTextEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
+
 
 def create_doc_pipeline(
     document_store: Any,
     llm: HuggingFaceLocalGenerator,
-    web_search: DuckduckgoApiWebSearch
+    web_search: Any
 ) -> Pipeline:
     """
     Creates and configures the document processing pipeline
@@ -39,7 +42,7 @@ def create_doc_pipeline(
     pipeline = Pipeline()
     
     # Add components
-    pipeline.add_component("retriever", InMemoryBM25Retriever(document_store=document_store))
+    pipeline.add_component("retriever", InMemoryEmbeddingRetriever(document_store, top_k=5))
     pipeline.add_component("prompt_builder", PromptBuilder(template=prompt_template))
     pipeline.add_component("llm", llm)
     pipeline.add_component("web_search", web_search)
