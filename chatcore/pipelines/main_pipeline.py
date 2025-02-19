@@ -1,7 +1,7 @@
 from haystack import Pipeline
 from haystack.components.routers import ConditionalRouter
 from typing import Dict, Any
-#from tools import ifc_tool, seg_tool
+from tools import ifc_tool, seg_tool
 
 def create_main_pipeline(
     ifc_tool: Any,
@@ -55,3 +55,11 @@ def create_main_pipeline(
     pipeline.connect("doc_pipeline.unanswered", "web_search")
 
     return pipeline
+
+'''if __name__ == "__main__":
+    pipe = create_main_pipeline(
+        ifc_tool,
+        seg_tool,
+        doc_pipeline: Pipeline,
+        web_search: Any
+    )'''
