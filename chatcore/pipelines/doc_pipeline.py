@@ -17,8 +17,8 @@ from chatcore.tools.doc_processing import DocumentManager
 
 
 def create_doc_pipeline(
-    document_manager: DocumentManager,
-    llm: HuggingFaceLocalGenerator,
+    document_store: Any,
+    llm: Any,
     web_search: Any
 ) -> Pipeline:
     """
@@ -55,7 +55,7 @@ def create_doc_pipeline(
     pipeline = Pipeline()
 
     text_embedder = SentenceTransformersTextEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
-    retriever = InMemoryEmbeddingRetriever(document_manager.document_store, top_k=5)
+    retriever = InMemoryEmbeddingRetriever(document_store, top_k=5)
     prompt_joiner  = BranchJoiner(str)
 
     routes = [
@@ -132,10 +132,22 @@ if __name__ == "__main__":
         generation_kwargs=llm_config["generation"]
     )
 
+    doc_store = DocumentManager("docs/")
+    precessed_docs= doc_store.process_documents()
+
     doc_pipe = create_doc_pipeline(
-        DocumentManager(),
+        precessed_docs,
         llm,
         web_search=DuckduckgoApiWebSearch(top_k=5)
         )
     
-    doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
+    # Visualizing the pipeline 
+    # doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
+
+    def get_answer(query):
+        result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+        print(result["router"]["answer"])
+    
+    query = "Where is Helsinki?"
+
+    get_answer(query)
