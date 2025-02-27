@@ -150,6 +150,6 @@ if __name__ == "__main__":
         result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
         print(result["router"]["answer"])
     
-    query = "Where is smartLab?"
+    query = "Where is Berlin?"
 
     get_answer(query)

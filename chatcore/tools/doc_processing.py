@@ -21,6 +21,8 @@ class DocumentManager:
             split_length=150,
             split_overlap=30
         )
+
+        self.splitter.warm_up()
         
         if not self.folder_path.exists():
             raise ValueError(f"Document folder not found: {self.folder_path}")
