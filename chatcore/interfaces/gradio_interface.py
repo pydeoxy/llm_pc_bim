@@ -1,84 +1,93 @@
 import gradio as gr
 import re
-from haystack import Pipeline
 from pathlib import Path
-from tools import ifc_tool, seg_tool
-from pipelines import doc_pipeline
+import sys
+import os
+from duckduckgo_api_haystack import DuckduckgoApiWebSearch
+from haystack.components.generators import HuggingFaceLocalGenerator
 
-# Previous imports and components remain the same
-# Add these new components:
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.utils.config_loader import load_llm_config
+from chatcore.tools import ifc_tool, seg_tool
+from chatcore.pipelines.doc_pipeline import create_doc_pipeline
+from chatcore.tools.doc_processing import DocumentManager
+
+def response_docs(folder_path,query):
+        
+    llm_config = load_llm_config()
+    
+    llm = HuggingFaceLocalGenerator(
+        model=llm_config["model_name"],
+        huggingface_pipeline_kwargs={
+            "device_map": llm_config["device_map"],
+            "torch_dtype": llm_config["torch_dtype"],        
+            #"model_kwargs": {"use_auth_token": llm_config["huggingface"]["use_auth_token"]}
+        },
+        generation_kwargs=llm_config["generation"]
+    )
+
+    llm.warm_up()
+
+    doc_store = DocumentManager(folder_path)
+    precessed_docs= doc_store.process_documents()
+
+    doc_pipe = create_doc_pipeline(
+        precessed_docs,
+        llm,
+        web_search=DuckduckgoApiWebSearch(top_k=5)
+        )
+
+    def get_answer(query):
+        result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+        print(result["router"]["answer"])
+    
+    return get_answer(query)
 
 def create_interface():
     with gr.Blocks(theme=gr.themes.Soft()) as demo:
-        # Store paths in session state
-        ifc_path = gr.State()
-        pointcloud_path = gr.State()
-        docs_folder = gr.State()
-        
+                      
         # File selection section
         with gr.Row():
             with gr.Column():
-                ifc_btn = gr.UploadButton(
-                    "Select IFC Model",
-                    file_types=[".ifc"],
-                    file_count="single"
+                ifc_path = gr.Text(
+                    label="IFC File",
+                    show_label=True,
+                    max_lines=1,
+                    placeholder="Enter the path of your IFC file",
+                    container=True,
                 )
-                ifc_path_display = gr.Text(label="Selected IFC File")
+
+                pc_path = gr.Text(
+                    label="Point Cloud File",
+                    show_label=True,
+                    max_lines=1,
+                    placeholder="Enter the path of your point cloud file",
+                    container=True,
+                )
+
+                docs_path = gr.Text(
+                    label="Documents Folder",
+                    show_label=True,
+                    max_lines=1,
+                    placeholder="Enter the path of your documents folder",
+                    container=True,
+                )                
                 
-                pc_btn = gr.UploadButton(
-                    "Select Point Cloud",
-                    file_types=[".ply", ".pcd"],
-                    file_count="single"
+            with gr.Column():
+                # Chat interface
+                chat = gr.ChatInterface(
+                    fn=chat_response,
+                    additional_inputs=[ifc_path, pc_path, docs_path],
+                    type="messages",
                 )
-                pc_path_display = gr.Text(label="Selected Point Cloud")
-                
-                docs_btn = gr.UploadButton(
-                    "Select Documents Folder",
-                    file_count="directory"
-                )
-                docs_path_display = gr.Text(label="Selected Documents Folder")
-        
-        # Chat interface
-        chat = gr.ChatInterface(
-            fn=chat_response,
-            additional_inputs=[ifc_path, pointcloud_path, docs_folder]
-        )
-        
-        # File selection handlers
-        def handle_ifc(file):
-            path = file.name if file else None
-            return path, path
-        
-        def handle_pc(file):
-            path = file.name if file else None
-            return path, path
-        
-        def handle_docs(folder):
-            load_documents(folder)  # Load documents when folder is selected
-            return folder, folder
-        
-        ifc_btn.upload(
-            handle_ifc,
-            inputs=ifc_btn,
-            outputs=[ifc_path, ifc_path_display]
-        )
-        
-        pc_btn.upload(
-            handle_pc,
-            inputs=pc_btn,
-            outputs=[pointcloud_path, pc_path_display]
-        )
-        
-        docs_btn.upload(
-            handle_docs,
-            inputs=docs_btn,
-            outputs=[docs_folder, docs_path_display]
-        )
         
     return demo
 
 # Modified chat response function
-def chat_response(message, history, ifc_path, pc_path, docs_folder):
+def chat_response(message, history, ifc_path, pc_path, docs_path):
     # Determine active file paths
     active_paths = {
         ".ifc": ifc_path,
@@ -109,17 +118,16 @@ def chat_response(message, history, ifc_path, pc_path, docs_folder):
             return seg_tool.run(file_path)
     
     # Document handling
-    if docs_folder and ("project" in message.lower() or "document" in message.lower()):
-        result = doc_pipeline.run(query=message)
+    if docs_path and ("project" in message.lower() or "document" in message.lower()):
+        result = response_docs(docs_path,message)
         return result["answers"][0] if result["answers"] else "No information found"
     
-    # Fallback to web search
-    return web_search.run(message)["documents"][0]
+
 
 # Simplified pipeline setup
 def main():
     demo = create_interface()
-    demo.launch()
+    demo.launch(inbrowser = True)
 
 if __name__ == "__main__":
     main()

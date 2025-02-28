@@ -1,6 +1,18 @@
 from haystack import Pipeline
 from haystack.components.routers import ConditionalRouter
-from typing import Dict, Any
+from typing import Dict, Any, Annotated, Callable, Tuple
+
+from dataclasses import dataclass, field
+
+import random, re
+
+from haystack.dataclasses import ChatMessage, ChatRole
+from haystack.tools import create_tool_from_function
+from haystack.components.tools import ToolInvoker
+
+from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
+
+
 
 import sys
 import os
@@ -10,15 +22,23 @@ if repo_root not in sys.path:
 
 from chatcore.tools import ifc_tool, seg_tool
 
+
+# Promt template missing.
+# Tools class or Agents.
+# Connections to be modified.
+
+
 def create_main_pipeline(
-    ifc_tool: Any,
-    seg_tool: Any,
+    llm: Any,
+    ifc_tool: Any, # Tool class for tool calling? Or agent?
+    seg_tool: Any, # Tool class for tool calling? Or agent?
     doc_pipeline: Pipeline    
 ) -> Pipeline:
     """
     Creates and configures the main processing pipeline with routing logic
     
     Args:
+        llm: HuggingFaceLocalChatGenerator
         ifc_tool: Initialized IFC processing tool
         seg_tool: Initialized segmentation tool
         doc_pipeline: Configured document pipeline
@@ -52,14 +72,16 @@ def create_main_pipeline(
 
     pipeline = Pipeline()
     pipeline.add_component("router", ConditionalRouter(router_conditions))
-    pipeline.add_component("ifctool", ifc_tool)
-    pipeline.add_component("segtool", seg_tool)
+    pipeline.add_component("ifctool", ifc_tool) # Tool or Agent?
+    pipeline.add_component("segtool", seg_tool) # Tool or Agent?
     pipeline.add_component("doc_pipeline", doc_pipeline)    
 
     # Connect components based on routing
-    pipeline.connect("router.go_to_ifctool", "ifctool.get_info")
-    pipeline.connect("router.go_to_segtool", "segtool.run")
+    # Prompt missing
+    pipeline.connect("router.go_to_ifctool", "ifctool.get_info") # pipeline to get finalized answer?
+    pipeline.connect("router.go_to_segtool", "segtool.run") # pipeline to get finalized answer?
     pipeline.connect("router.go_to_docpipeline", "doc_pipeline.query")
+    # Answers through the ifc or seg tools should be finalize with llm
 
     return pipeline
 

@@ -20,7 +20,7 @@ def create_doc_pipeline(
     document_store: Any,
     llm: Any,
     web_search: Any
-) -> Pipeline:
+    ) -> Pipeline:
     """
     Creates and configures the document processing pipeline
     
