@@ -1,4 +1,4 @@
-from chatcore.interfaces.gradio_interface import create_interface
+from tests.gradio_interface import create_interface
 from chatcore.utils.config_loader import load_llm_config
 from haystack.components.generators import HuggingFaceLocalGenerator
 from chatcore.pipelines.doc_pipeline import create_doc_pipeline

@@ -54,7 +54,7 @@ with gr.Blocks() as demo:
     gr.Markdown("# 📁 Chat with Files & Folders")
     
     with gr.Row():
-        file_input = gr.File(label="Upload File")
+        file_input = gr.File(label="Select File")
         folder_input = gr.Textbox(label="Folder Path")
     
     gr.ChatInterface(
@@ -69,4 +69,4 @@ with gr.Blocks() as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(inbrowser = True)

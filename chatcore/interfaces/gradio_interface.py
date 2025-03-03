@@ -5,6 +5,7 @@ import sys
 import os
 from duckduckgo_api_haystack import DuckduckgoApiWebSearch
 from haystack.components.generators import HuggingFaceLocalGenerator
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
@@ -14,6 +15,11 @@ from chatcore.utils.config_loader import load_llm_config
 from chatcore.tools import ifc_tool, seg_tool
 from chatcore.pipelines.doc_pipeline import create_doc_pipeline
 from chatcore.tools.doc_processing import DocumentManager
+
+# Load the Llama-3 model (corrected model ID)
+model_id = "meta-llama/Llama-3.2-3B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id)
 
 def response_docs(folder_path,query):
         
@@ -42,92 +48,63 @@ def response_docs(folder_path,query):
 
     def get_answer(query):
         result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
-        print(result["router"]["answer"])
+        return result["router"]["answer"]
     
     return get_answer(query)
 
-def create_interface():
-    with gr.Blocks(theme=gr.themes.Soft()) as demo:
-                      
-        # File selection section
-        with gr.Row():
-            with gr.Column():
-                ifc_path = gr.Text(
-                    label="IFC File",
-                    show_label=True,
-                    max_lines=1,
-                    placeholder="Enter the path of your IFC file",
-                    container=True,
-                )
+def response_ifc(ifc_path, query):
+    return f'IFC file found from {ifc_path}. I will answer your question about the IFC file.'
 
-                pc_path = gr.Text(
-                    label="Point Cloud File",
-                    show_label=True,
-                    max_lines=1,
-                    placeholder="Enter the path of your point cloud file",
-                    container=True,
-                )
+def response_pc(pc_path, query):    
+    return f'Point Cloud file found from {pc_path}. I will answer your question about the Point Cloud file.'
 
-                docs_path = gr.Text(
-                    label="Documents Folder",
-                    show_label=True,
-                    max_lines=1,
-                    placeholder="Enter the path of your documents folder",
-                    container=True,
-                )                
-                
-            with gr.Column():
-                # Chat interface
-                chat = gr.ChatInterface(
-                    fn=chat_response,
-                    additional_inputs=[ifc_path, pc_path, docs_path],
-                    type="messages",
-                )
-        
-    return demo
+def generate_response(message, history, ifc_path, pc_path, folder_path):
+    """Generate response with file/folder context"""     
+    
+    if ifc_path and 'ifc' in message.lower():
+        answer = response_ifc(ifc_path, message)
+    elif pc_path and 'point cloud' in message.lower():
+        answer = response_pc(pc_path, message)   
+    elif folder_path and 'project' in message.lower():
+        answer = response_docs(folder_path,message)
+    else:
+        answer = 'No file or documents related to the query.'
+    
+    system_prompt = """Analyze the following context:\n"""    
+    system_prompt += f"[PRELIMINARY ANSWER TO USER'S QUERY]\n{answer}\n"
+    
+    
+    prompt = f"""<|begin_of_text|>
+    <|start_header_id|>system<|end_header_id|>
+    {system_prompt}<|eot_id|>
+    <|start_header_id|>user<|end_header_id|>
+    {message}<|eot_id|>
+    <|start_header_id|>assistant<|end_header_id|>"""
+    
+    inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
+    outputs = model.generate(**inputs, max_new_tokens=512, temperature=0.7)
+    
+    response = tokenizer.decode(outputs[0], skip_special_tokens=False)
+    return response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].split("<|eot_id|>")[0].strip()
 
-# Modified chat response function
-def chat_response(message, history, ifc_path, pc_path, docs_path):
-    # Determine active file paths
-    active_paths = {
-        ".ifc": ifc_path,
-        ".ply": pc_path,
-        ".pcd": pc_path
-    }
+with gr.Blocks() as demo:
+    gr.Markdown("# 📁 Chat with Files & Folders")
     
-    # Check if query mentions any supported file types
-    mentioned_files = {
-        ext: re.search(r'\b\w+'+ext+r'\b', message)
-        for ext in ['.ifc', '.ply', '.pcd']
-    }
+    with gr.Row():
+        ifc_file_input = gr.File(label="Select Your IFC File")
+        pc_file_input = gr.File(label="Select Your Point Cloud File")
+        folder_input = gr.Textbox(label="Select Your Folder Path of Documents")
     
-    # Use mentioned files or stored paths
-    file_path = next((
-        match.group() for match in mentioned_files.values() if match
-    ), None) or next((
-        path for ext, path in active_paths.items() 
-        if ext in message.lower() and path
-    ), None)
-    
-    # Route based on detected file type
-    if file_path:
-        ext = Path(file_path).suffix.lower()
-        if ext == ".ifc" and any(w in message.lower() for w in ["ifc", "entity", "model"]):
-            return ifc_tool.run(file_path, message)
-        elif ext in [".ply", ".pcd"] and "segmentation" in message.lower():
-            return seg_tool.run(file_path)
-    
-    # Document handling
-    if docs_path and ("project" in message.lower() or "document" in message.lower()):
-        result = response_docs(docs_path,message)
-        return result["answers"][0] if result["answers"] else "No information found"
-    
-
-
-# Simplified pipeline setup
-def main():
-    demo = create_interface()
-    demo.launch(inbrowser = True)
+    gr.ChatInterface(
+        generate_response,
+        additional_inputs=[ifc_file_input, pc_file_input, folder_input],
+        #examples=[
+            # Each example must be a list with values for all inputs
+        #    ["What's in the file?", None, "/path/to/your/folder"],
+        #    ["List PDFs in the folder", None, "/path/to/your/docs"],
+        #    ["Summarize the document", "example.txt", None]
+        #]
+    )
 
 if __name__ == "__main__":
-    main()
+    demo.launch(inbrowser = True)
