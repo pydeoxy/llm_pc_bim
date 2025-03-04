@@ -2,6 +2,7 @@ from haystack import Pipeline
 from haystack.components.embedders import SentenceTransformersTextEmbedder
 from haystack.components.retrievers.in_memory import InMemoryEmbeddingRetriever
 from haystack.components.generators import HuggingFaceLocalGenerator
+from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 from haystack.components.builders import PromptBuilder
 from haystack.components.joiners import BranchJoiner
 from haystack.components.routers import ConditionalRouter
