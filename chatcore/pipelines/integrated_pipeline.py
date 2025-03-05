@@ -17,7 +17,7 @@ if repo_root not in sys.path:
 from chatcore.tools.doc_processing import DocumentManager
 
 
-def create_doc_pipeline(
+def create_all_pipeline(
     document_store: Any,
     llm: Any,
     web_search: Any
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     doc_store = DocumentManager("docs/")
     precessed_docs= doc_store.process_documents()
 
-    doc_pipe = create_doc_pipeline(
+    doc_pipe = create_all_pipeline(
         precessed_docs,
         llm,
         web_search=DuckduckgoApiWebSearch(top_k=5)
