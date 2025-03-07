@@ -4,6 +4,8 @@ from haystack import component
 from haystack.dataclasses import ChatMessage, ToolCall
 from typing import List
 import re
+from haystack.components.tools import ToolInvoker
+from tool_test import ifc_entity_tool
 
 tool_reference = {"ifc_entity_tool":"List the entities of an IFC file at ':/path/to/your/ifc/file/model.ifc'"}
 
@@ -52,4 +54,9 @@ if __name__ == '__main__':
     question = "List the entities in the IFC file at 'C:/Users/yanpe/Documents/temp/Riihimaki.ifc'"
     query = ChatMessage.from_user(question)
     ifc_tool_checker = IfcToolCallAssistant()
-    print(ifc_tool_checker.run(query))
+
+    # ToolInvoker initialization and run
+    invoker = ToolInvoker(tools=[ifc_entity_tool])
+    result = invoker.run([ifc_tool_checker.run(query)])
+
+    print(result)
