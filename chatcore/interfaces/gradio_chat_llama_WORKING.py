@@ -60,7 +60,7 @@ def response_docs(message, history):
 
 
 with gr.Blocks() as demo:
-    gr.Markdown("# 📁 Chat with Files & Folders")
+    gr.Markdown("# 📁 Chat with Your Project Documents")
     
     #with gr.Row():
         #ifc_file_input = gr.File(label="Select Your IFC File")

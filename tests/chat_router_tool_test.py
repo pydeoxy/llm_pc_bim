@@ -4,6 +4,7 @@ from haystack.components.routers import ConditionalRouter
 from haystack import Pipeline
 from typing import List  # Ensure List is imported
 from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
+from haystack import component
 
 # Import the tool
 from tool_test import ifc_entity_tool
@@ -87,5 +88,6 @@ response = llm_chat.run(messages=user_messages, tools=[ifc_entity_tool])
 #result = tool_invoker.run([user_message])
 
 '''
+print(user_message)
 from pprint import pprint
 pprint(result)

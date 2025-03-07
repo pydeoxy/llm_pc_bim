@@ -50,14 +50,16 @@ if __name__ == '__main__':
 
     ifc_entity_tool_call = ToolCall(
         tool_name="ifc_entity_tool",
-        arguments={"ifc_file_path": "C:/Users/yanpe/Documents/projects/llm_pc_bim/tests/BIM4EEB-TUD-2x3.ifc"}
+        arguments={"ifc_file_path": "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Courses/CRBE/IFC/BIM4EEB-TUD-2x3.ifc"}
     )
 
     message = ChatMessage.from_assistant(tool_calls=[ifc_entity_tool_call])
 
+    print(message)
 
     # ToolInvoker initialization and run
     invoker = ToolInvoker(tools=[ifc_entity_tool])
     result = invoker.run(messages=[message])
 
     print(result)
+   
