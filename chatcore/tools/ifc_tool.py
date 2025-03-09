@@ -2,6 +2,11 @@ import ifcopenshell
 import re
 from pathlib import Path
 
+
+'''
+Modify this with working similarity checking and tool calling
+'''
+
 class IFCTool:
     def __init__(self):
         self.loaded_files = {}

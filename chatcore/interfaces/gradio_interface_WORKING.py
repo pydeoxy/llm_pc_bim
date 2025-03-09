@@ -6,23 +6,49 @@ import os
 from duckduckgo_api_haystack import DuckduckgoApiWebSearch
 from haystack.components.generators import HuggingFaceLocalGenerator
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import json
+from haystack import Pipeline
 
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
+'''
+Add buttons to initialize pipelines and tool pipelines
 
-from chatcore.utils.config_loader import load_llm_config
-from chatcore.tools import ifc_tool, seg_tool
-from chatcore.pipelines.doc_pipeline import create_doc_pipeline
-from chatcore.tools.doc_processing import DocumentManager
+'''
+doc_pipe = Pipeline()
 
-# Load the Llama-3 model (corrected model ID)
-model_id = "meta-llama/Llama-3.2-3B-Instruct"
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(model_id)
+def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
+    """Update JSON config and process documents into Haystack's document store."""
+    config = {}
+    if os.path.exists("config.json"):
+        with open("config.json", "r") as f:
+            config = json.load(f)
+    
+    # Update file path (handle temporary uploads)
+    if ifc_file_input is not None:
+        config["ifc_file_path"] = ifc_file_input.name  # Store uploaded file's persistent path
+    else:
+        config.pop("ifc_file_path", None)
 
-def response_docs(folder_path,query):
-        
+    if pc_file_input is not None:
+        config["pc_file_path"] = pc_file_input.name  # Store uploaded file's persistent path
+    else:
+        config.pop("pc_file_path", None)
+    
+    # Update folder path
+    if folder_input.strip():
+        config["folder_path"] = folder_input.strip()
+    else:
+        config.pop("folder_path", None)
+    
+    # Save config
+    with open("config.json", "w") as f:
+        json.dump(config, f)
+    
+    # Process documents
+    doc_pipe_start(config["folder_path"])
+    return None
+
+def doc_pipe_start(folder_path):
+    global doc_pipe
     llm_config = load_llm_config()
     
     llm = HuggingFaceLocalGenerator(
@@ -46,11 +72,23 @@ def response_docs(folder_path,query):
         web_search=DuckduckgoApiWebSearch(top_k=5)
         )
 
-    def get_answer(query):
-        result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
-        return result["router"]["answer"]
-    
-    return get_answer(query)
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.utils.config_loader import load_llm_config
+from chatcore.tools import ifc_tool, pc_tool
+from chatcore.pipelines.doc_pipeline import create_doc_pipeline
+from chatcore.tools.doc_processing import DocumentManager
+
+# Load the Llama-3 model (corrected model ID)
+model_id = "meta-llama/Llama-3.2-3B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id)
+
+def response_docs(query):    
+    result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+    return result["router"]["answer"]
 
 def response_ifc(ifc_path, query):
     return f'IFC file found from {ifc_path}. I will answer your question about the IFC file.'
@@ -66,7 +104,7 @@ def generate_response(message, history, ifc_path, pc_path, folder_path):
     elif pc_path and 'point cloud' in message.lower():
         answer = response_pc(pc_path, message)   
     elif folder_path and 'project' in message.lower():
-        answer = response_docs(folder_path,message)
+        answer = response_docs(message)
     else:
         answer = 'No file or documents related to the query.'
     
@@ -94,6 +132,23 @@ with gr.Blocks() as demo:
         ifc_file_input = gr.File(label="Select Your IFC File")
         pc_file_input = gr.File(label="Select Your Point Cloud File")
         folder_input = gr.Textbox(label="Select Your Folder Path of Documents")
+
+    # Update config on input changes
+    ifc_file_input.change(
+        fn=update_config_and_index,
+        inputs=[ifc_file_input, pc_file_input, folder_input],
+        outputs=None
+    )
+    ifc_file_input.change(
+        fn=update_config_and_index,
+        inputs=[ifc_file_input, pc_file_input, folder_input],
+        outputs=None
+    )
+    folder_input.change(
+        fn=update_config_and_index,
+        inputs=[ifc_file_input, pc_file_input, folder_input],
+        outputs=None
+    )
     
     gr.ChatInterface(
         generate_response,

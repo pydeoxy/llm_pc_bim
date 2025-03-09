@@ -20,6 +20,11 @@ from chatcore.tools.doc_processing import DocumentManager
 
 from typing import List
 
+'''
+Try this with Local Chat Generator
+'''
+
+
 from haystack.dataclasses import ChatMessage, Document
 chat_history: List[ChatMessage] = []
 

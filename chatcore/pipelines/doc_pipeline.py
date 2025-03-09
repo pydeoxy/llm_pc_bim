@@ -15,6 +15,10 @@ if repo_root not in sys.path:
 
 from chatcore.tools.doc_processing import DocumentManager
 
+'''
+Figure out how to deal with normal questions besides the two routes
+
+'''
 
 def create_doc_pipeline(
     document_store: Any,

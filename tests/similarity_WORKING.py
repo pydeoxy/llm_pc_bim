@@ -7,6 +7,11 @@ import re
 from haystack.components.tools import ToolInvoker
 from tool_test import ifc_entity_tool
 
+'''
+Try in pipeline
+'''
+
+
 tool_reference = {"ifc_entity_tool":"List the entities of an IFC file at ':/path/to/your/ifc/file/model.ifc'"}
 
 def query_similarity(ref,query):
