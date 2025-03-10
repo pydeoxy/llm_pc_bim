@@ -2,7 +2,8 @@ from haystack.dataclasses import ChatMessage
 from haystack.components.tools import ToolInvoker
 from haystack.components.routers import ConditionalRouter
 from haystack import Pipeline
-from typing import List  # Ensure List is imported
+from typing import List, Any
+from haystack.components.generators import HuggingFaceLocalGenerator
 from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 from haystack import component
 
@@ -15,10 +16,6 @@ if repo_root not in sys.path:
 from chatcore.tools.ifc_tool import ifc_entity_tool, IfcToolCallAssistant
 
 
-# Initialize the ToolInvoker with the weather tool
-ifc_tool_checker = IfcToolCallAssistant()
-tool_invoker = ToolInvoker(tools=[ifc_entity_tool])
-
 # Initialize the ChatGenerator
 # Chat LLM    
 llm_chat = HuggingFaceLocalChatGenerator(
@@ -26,61 +23,84 @@ llm_chat = HuggingFaceLocalChatGenerator(
         huggingface_pipeline_kwargs={
             "device_map": "auto",
             "torch_dtype": "float16"
-        },
-        tools=[ifc_entity_tool]
+        }
     )
 
-llm_chat.warm_up()
+#llm_chat.warm_up()
+
+def create_ifc_pipeline(
+    #ifc_file: Any,
+    #llm: Any,
+    #web_search: Any
+    ) -> Pipeline:
+    """
+    Creates and configures the document processing pipeline
+    
+    Args:
+        document_manager: Initialized document store
+        llm: Configured LLM generator
+        web_search: Initialized web search component
+        
+    Returns:
+        Configured Pipeline instance
+    """
 
 
-# Define routing conditions
-routes = [
-    {
-        "condition": "{{'ifcentity' in messages}}",
-        "output": "{{messages}}",
-        "output_name": "ifc_entity_tool_calls",
-        "output_type": ChatMessage,  # Use direct type
-    },
-    {
-        "condition": "{{'ifcentity' not in messages}}",
-        "output": "{{messages}}",
-        "output_name": "no_tool_calls",
-        "output_type": List[ChatMessage],  # Use direct type
-    },
-]
+    # Define routing conditions
+    routes = [
+        {
+            "condition": "{{'ifcentit' in messages[0].text}}",
+            "output": "{{messages[0]}}",
+            "output_name": "ifc_entity_tool_calls",
+            "output_type": ChatMessage,  # Use direct type
+        },
+        {
+            "condition": "{{'ifcentit' not in messages}}",
+            "output": "{{messages}}",
+            "output_name": "no_tool_calls",
+            "output_type": List[ChatMessage],  # Use direct type
+        },
+    ]
 
-# Initialize the ConditionalRouter
-router = ConditionalRouter(routes, unsafe=True)
+    # Initialize the ConditionalRouter
+    router = ConditionalRouter(routes, unsafe=True)
 
-# Create the pipeline
-pipeline = Pipeline()
-pipeline.add_component("generator", llm_chat)
-pipeline.add_component("router", router)
-pipeline.add_component("tool_checker", ifc_tool_checker)
-pipeline.add_component("tool_invoker", tool_invoker)
+    # Initialize the ToolInvoker with the weather tool
+    ifc_tool_checker = IfcToolCallAssistant()
+    tool_invoker = ToolInvoker(tools=[ifc_entity_tool])
 
-# Connect components
-#pipeline.connect("generator.replies", "router")
-pipeline.connect("router.ifc_entity_tool_calls", "tool_checker.message")  
-pipeline.connect("tool_checker.messages", "tool_invoker.messages")  
-pipeline.connect("router.no_tool_calls", "generator") # Correct connection
+    # Create the pipeline
+    pipeline = Pipeline()
+    #pipeline.add_component("generator", llm_chat)
+    pipeline.add_component("router", router)
+    pipeline.add_component("tool_checker", ifc_tool_checker)
+    pipeline.add_component("tool_invoker", tool_invoker)
 
-# Critical connection: Feed tool results back to generator
-#pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line
+    # Connect components
+    #pipeline.connect("generator.replies", "router")
+    pipeline.connect("router.ifc_entity_tool_calls", "tool_checker.message")  
+    pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
+    #pipeline.connect("router.no_tool_calls", "generator") # Correct connection
+
+    # Critical connection: Feed tool results back to generator
+    #pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line
+
+    return pipeline
 
 
-# Example user message
-user_message = ChatMessage.from_user("List the ifcentities of the ifc file at 'C:/Users/yanpe/Documents/temp/Riihimaki.ifc'")
+if __name__ == "__main__":
+    # Example user message
+    ifc_pipe = create_ifc_pipeline()
+    user_message = ChatMessage.from_user("List the ifcentities of the ifc file at 'C:/Users/yanpe/Documents/temp/Riihimaki.ifc'")
+    #user_message = ChatMessage.from_user("Where is Helsinki?")
+    # Run the pipeline
+    result = ifc_pipe.run({"messages": [user_message]})
 
-# Run the pipeline
-#result = pipeline.run({"messages": [user_message]})
 
-
-ifc_tool_checker = IfcToolCallAssistant()
-
-#result = ifc_tool_checker.run(user_message)
-invoker = ToolInvoker(tools=[ifc_entity_tool])
-result = invoker.run([ifc_tool_checker.run(user_message)])
-print(result)
+    #ifc_tool_checker = IfcToolCallAssistant()
+    #assistant = ifc_tool_checker.run(user_message)
+    #invoker = ToolInvoker(tools=[ifc_entity_tool])
+    #result = invoker.run([assistant])
+    print(result)
 
 

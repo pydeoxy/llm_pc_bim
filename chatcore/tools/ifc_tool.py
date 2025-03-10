@@ -81,16 +81,16 @@ def extract_ifc_file_path(input_string):
 @component
 class IfcToolCallAssistant:
 
-    @component.output_types(messages=List[ChatMessage])
+    @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
         if query_similarity(tool_reference["ifc_entity_tool"], message.text)>0.5:
             ifc_entity_tool_call = ToolCall(
                 tool_name="ifc_entity_tool",
                 arguments={"ifc_file_path": extract_ifc_file_path(message.text)}
                 )
-            return ChatMessage.from_assistant(tool_calls=[ifc_entity_tool_call])
+            return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_entity_tool_call])]}
         else:
-            return ChatMessage.from_assistant("No function calling founded.")
+            return {"helper_messages":[ChatMessage.from_assistant("No function calling founded.")]}
 
 
 
