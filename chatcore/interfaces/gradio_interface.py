@@ -9,6 +9,14 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import json
 from haystack import Pipeline
 
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.utils.config_loader import load_llm_config
+from chatcore.pipelines.doc_pipeline import create_doc_pipeline
+from chatcore.tools.doc_processing import DocumentManager
+
 '''
 Add buttons to initialize pipelines and tool pipelines
 
@@ -71,15 +79,6 @@ def doc_pipe_start(folder_path):
         llm,
         web_search=DuckduckgoApiWebSearch(top_k=5)
         )
-
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
-
-from chatcore.utils.config_loader import load_llm_config
-from chatcore.tools import ifc_tool, pc_tool
-from chatcore.pipelines.doc_pipeline import create_doc_pipeline
-from chatcore.tools.doc_processing import DocumentManager
 
 # Load the Llama-3 model (corrected model ID)
 model_id = "meta-llama/Llama-3.2-3B-Instruct"
