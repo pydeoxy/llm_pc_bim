@@ -5,7 +5,7 @@ from haystack.dataclasses import ChatMessage, ToolCall
 from typing import List
 import re
 from haystack.components.tools import ToolInvoker
-from tool_test import ifc_entity_tool
+from chatcore.tools.ifc_tool import ifc_entity_tool
 
 '''
 Try in pipeline

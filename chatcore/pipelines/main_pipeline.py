@@ -23,6 +23,25 @@ if repo_root not in sys.path:
 from chatcore.tools import ifc_tool, seg_tool
 
 
+'''
+Main Pipeline:
+ A[User Query] --> B(Router)
+ B -->|IFC Route| C[IFC Pipeline]
+ B -->|Seg Route| D[PC Pipeline]
+ B -->|Doc Route| E[Doc Pipeline]
+ E -->|Unanswered| F[Web Search]
+
+ Document Pipeline
+A[Query] --> B(Retriever)
+ B --> C(Prompt Builder)
+ C --> D(LLM)
+ D --> E{Answer Check}
+ E -->|Valid| F[Response]
+ E -->|Invalid| G[Web Search]
+
+'''
+
+
 # Promt template missing.
 # Tools class or Agents.
 # Connections to be modified.
@@ -30,17 +49,17 @@ from chatcore.tools import ifc_tool, seg_tool
 
 def create_main_pipeline(
     llm: Any,
-    ifc_tool: Any, # Tool class for tool calling? Or agent?
-    seg_tool: Any, # Tool class for tool calling? Or agent?
+    ifc_pipeline: Pipeline, 
+    pc_pipeline: Pipeline, 
     doc_pipeline: Pipeline    
 ) -> Pipeline:
     """
     Creates and configures the main processing pipeline with routing logic
     
     Args:
-        llm: HuggingFaceLocalChatGenerator
-        ifc_tool: Initialized IFC processing tool
-        seg_tool: Initialized segmentation tool
+        llm: HuggingFaceLocalGenerator or other LLMs
+        ifc_pipeline: Configured ifc file pipeline
+        pc_pipeline:  Configured point cloud pipeline
         doc_pipeline: Configured document pipeline
                 
     Returns:
@@ -51,14 +70,14 @@ def create_main_pipeline(
         {
             "condition": "'.ifc' in {{query}} or 'ifc' in {{query|lower}}",
             "output": {"ifc_route": True},
-            "output_name": "go_to_ifctool",
+            "output_name": "go_to_ifcpipeline",
             "output_type": str,
         },
         {
             "condition": "any(ext in {{query}} for ext in ['.ply','.pcd']) "
-                        "or 'segmentation' in {{query|lower}}",
-            "output": {"seg_route": True},
-            "output_name": "go_to_segtool",
+                        "or 'point cloud' in {{query|lower}}",
+            "output": {"pc_route": True},
+            "output_name": "go_to_pcpipeline",
             "output_type": str,
         },
         {
@@ -72,14 +91,14 @@ def create_main_pipeline(
 
     pipeline = Pipeline()
     pipeline.add_component("router", ConditionalRouter(router_conditions))
-    pipeline.add_component("ifctool", ifc_tool) # Tool or Agent?
-    pipeline.add_component("segtool", seg_tool) # Tool or Agent?
+    pipeline.add_component("ifc_pipeline", ifc_pipeline) 
+    pipeline.add_component("pc_pipeline", pc_pipeline) 
     pipeline.add_component("doc_pipeline", doc_pipeline)    
 
     # Connect components based on routing
     # Prompt missing
-    pipeline.connect("router.go_to_ifctool", "ifctool.get_info") # pipeline to get finalized answer?
-    pipeline.connect("router.go_to_segtool", "segtool.run") # pipeline to get finalized answer?
+    pipeline.connect("router.go_to_ifctool", "ifc_pipeline.query") 
+    pipeline.connect("router.go_to_segtool", "pc_pipeline.query") 
     pipeline.connect("router.go_to_docpipeline", "doc_pipeline.query")
     # Answers through the ifc or seg tools should be finalize with llm
 

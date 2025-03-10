@@ -6,9 +6,13 @@ from typing import List  # Ensure List is imported
 from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 from haystack import component
 
-# Import the tool
-from tool_test import ifc_entity_tool
-from similarity_WORKING import IfcToolCallAssistant
+import sys
+import os
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.tools.ifc_tool import ifc_entity_tool, IfcToolCallAssistant
 
 
 # Initialize the ToolInvoker with the weather tool
@@ -80,26 +84,3 @@ result = invoker.run([ifc_tool_checker.run(user_message)])
 print(result)
 
 
-# Print the result
-# "List the ifcentity in 'C:/Users/yanpe/Documents/projects/llm_pc_bim/tests/BIM4EEB-TUD-2x3.ifc'"
-
-
-
-#print(tool_invoker.run(result['replies']['content']))
-'''
-user_messages = [
-    ChatMessage.from_system(
-        "Depending on the user's query, use the tool that you're provided with when compatible. "
-    ),
-    ChatMessage.from_user("Where is Helsinki?"),
-]
-
-
-response = llm_chat.run(messages=user_messages, tools=[ifc_entity_tool])
-
-#result = tool_invoker.run([user_message])
-
-'''
-print(user_message)
-from pprint import pprint
-pprint(result)
