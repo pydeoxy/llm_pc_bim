@@ -36,15 +36,15 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     # Update folder path
     if folder_input.strip():
         config["folder_path"] = folder_input.strip()
+        # Process documents
+        doc_pipe_start(config["folder_path"])
     else:
         config.pop("folder_path", None)
     
     # Save config
     with open("config.json", "w") as f:
-        json.dump(config, f)
+        json.dump(config, f)    
     
-    # Process documents
-    doc_pipe_start(config["folder_path"])
     return None
 
 def doc_pipe_start(folder_path):

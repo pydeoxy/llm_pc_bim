@@ -11,8 +11,7 @@ from tool_test import ifc_entity_tool
 Try in pipeline
 '''
 
-
-tool_reference = {"ifc_entity_tool":"List the entities of an IFC file at ':/path/to/your/ifc/file/model.ifc'"}
+tool_reference = {"ifc_entity_tool":"List the ifc entities of an IFC file at 'D:/path/to/your/ifc/file/model.ifc'"}
 
 def query_similarity(ref,query):
     model = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight model
@@ -45,7 +44,7 @@ class IfcToolCallAssistant:
 
     @component.output_types(messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
-        if query_similarity(tool_reference["ifc_entity_tool"], message.text)>0.6:
+        if query_similarity(tool_reference["ifc_entity_tool"], message.text)>0.5:
             ifc_entity_tool_call = ToolCall(
                 tool_name="ifc_entity_tool",
                 arguments={"ifc_file_path": extract_ifc_file_path(message.text)}
@@ -57,11 +56,15 @@ class IfcToolCallAssistant:
 if __name__ == '__main__':
     reference = tool_reference["ifc_entity_tool"]
     question = "List the entities in the IFC file at 'C:/Users/yanpe/Documents/temp/Riihimaki.ifc'"
-    query = ChatMessage.from_user(question)
-    ifc_tool_checker = IfcToolCallAssistant()
+    question2 = "List the entities of the file at 'C:/Users/yanpe/Documents/projects/llm_pc_bim/tests/BIM4EEB-TUD-2x3.ifc'"
+    #query = ChatMessage.from_user(question)
+    #ifc_tool_checker = IfcToolCallAssistant()
 
     # ToolInvoker initialization and run
-    invoker = ToolInvoker(tools=[ifc_entity_tool])
-    result = invoker.run([ifc_tool_checker.run(query)])
+    #invoker = ToolInvoker(tools=[ifc_entity_tool])
+    #result = invoker.run([ifc_tool_checker.run(query)])
 
-    print(result)
+    #print(ifc_tool_checker.run(query))
+
+    print(f'question similarity: {query_similarity(reference,question)}')
+    print(f'question2 similarity: {query_similarity(reference,question2)}')

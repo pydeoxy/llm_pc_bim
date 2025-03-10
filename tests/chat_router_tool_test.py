@@ -8,9 +8,11 @@ from haystack import component
 
 # Import the tool
 from tool_test import ifc_entity_tool
+from similarity_WORKING import IfcToolCallAssistant
 
 
 # Initialize the ToolInvoker with the weather tool
+ifc_tool_checker = IfcToolCallAssistant()
 tool_invoker = ToolInvoker(tools=[ifc_entity_tool])
 
 # Initialize the ChatGenerator
@@ -33,7 +35,7 @@ routes = [
         "condition": "{{'ifcentity' in messages}}",
         "output": "{{messages}}",
         "output_name": "ifc_entity_tool_calls",
-        "output_type": List[ChatMessage],  # Use direct type
+        "output_type": ChatMessage,  # Use direct type
     },
     {
         "condition": "{{'ifcentity' not in messages}}",
@@ -50,11 +52,13 @@ router = ConditionalRouter(routes, unsafe=True)
 pipeline = Pipeline()
 pipeline.add_component("generator", llm_chat)
 pipeline.add_component("router", router)
+pipeline.add_component("tool_checker", ifc_tool_checker)
 pipeline.add_component("tool_invoker", tool_invoker)
 
 # Connect components
 #pipeline.connect("generator.replies", "router")
-pipeline.connect("router.ifc_entity_tool_calls", "tool_invoker.messages")  
+pipeline.connect("router.ifc_entity_tool_calls", "tool_checker.message")  
+pipeline.connect("tool_checker.messages", "tool_invoker.messages")  
 pipeline.connect("router.no_tool_calls", "generator") # Correct connection
 
 # Critical connection: Feed tool results back to generator
@@ -62,10 +66,18 @@ pipeline.connect("router.no_tool_calls", "generator") # Correct connection
 
 
 # Example user message
-user_message = ChatMessage.from_user("List the ifcentity in 'C:/Users/yanpe/Documents/projects/llm_pc_bim/tests/BIM4EEB-TUD-2x3.ifc'")
+user_message = ChatMessage.from_user("List the ifcentities of the ifc file at 'C:/Users/yanpe/Documents/temp/Riihimaki.ifc'")
 
 # Run the pipeline
-result = pipeline.run({"messages": [user_message]})
+#result = pipeline.run({"messages": [user_message]})
+
+
+ifc_tool_checker = IfcToolCallAssistant()
+
+#result = ifc_tool_checker.run(user_message)
+invoker = ToolInvoker(tools=[ifc_entity_tool])
+result = invoker.run([ifc_tool_checker.run(user_message)])
+print(result)
 
 
 # Print the result
