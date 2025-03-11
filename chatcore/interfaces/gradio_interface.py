@@ -124,41 +124,44 @@ def generate_response(message, history, ifc_path, pc_path, folder_path):
     response = tokenizer.decode(outputs[0], skip_special_tokens=False)
     return response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].split("<|eot_id|>")[0].strip()
 
-with gr.Blocks() as demo:
-    gr.Markdown("# 📁 Chat with Files & Folders")
-    
-    with gr.Row():
-        ifc_file_input = gr.File(label="Select Your IFC File")
-        pc_file_input = gr.File(label="Select Your Point Cloud File")
-        folder_input = gr.Textbox(label="Select Your Folder Path of Documents")
+def create_interface():
+    with gr.Blocks() as demo:
+        gr.Markdown("# 📁 Chat with Files & Folders")
+        
+        with gr.Row():
+            ifc_file_input = gr.File(label="Select Your IFC File")
+            pc_file_input = gr.File(label="Select Your Point Cloud File")
+            folder_input = gr.Textbox(label="Select Your Folder Path of Documents")
 
-    # Update config on input changes
-    ifc_file_input.change(
-        fn=update_config_and_index,
-        inputs=[ifc_file_input, pc_file_input, folder_input],
-        outputs=None
-    )
-    ifc_file_input.change(
-        fn=update_config_and_index,
-        inputs=[ifc_file_input, pc_file_input, folder_input],
-        outputs=None
-    )
-    folder_input.change(
-        fn=update_config_and_index,
-        inputs=[ifc_file_input, pc_file_input, folder_input],
-        outputs=None
-    )
-    
-    gr.ChatInterface(
-        generate_response,
-        additional_inputs=[ifc_file_input, pc_file_input, folder_input],
-        #examples=[
-            # Each example must be a list with values for all inputs
-        #    ["What's in the file?", None, "/path/to/your/folder"],
-        #    ["List PDFs in the folder", None, "/path/to/your/docs"],
-        #    ["Summarize the document", "example.txt", None]
-        #]
-    )
+        # Update config on input changes
+        ifc_file_input.change(
+            fn=update_config_and_index,
+            inputs=[ifc_file_input, pc_file_input, folder_input],
+            outputs=None
+        )
+        ifc_file_input.change(
+            fn=update_config_and_index,
+            inputs=[ifc_file_input, pc_file_input, folder_input],
+            outputs=None
+        )
+        folder_input.change(
+            fn=update_config_and_index,
+            inputs=[ifc_file_input, pc_file_input, folder_input],
+            outputs=None
+        )
+        
+        gr.ChatInterface(
+            generate_response,
+            additional_inputs=[ifc_file_input, pc_file_input, folder_input],
+            #examples=[
+                # Each example must be a list with values for all inputs
+            #    ["What's in the file?", None, "/path/to/your/folder"],
+            #    ["List PDFs in the folder", None, "/path/to/your/docs"],
+            #    ["Summarize the document", "example.txt", None]
+            #]
+        )
+    return demo
 
 if __name__ == "__main__":
-    demo.launch(inbrowser = True)
+    interface = create_interface()
+    interface.launch(inbrowser = True)
