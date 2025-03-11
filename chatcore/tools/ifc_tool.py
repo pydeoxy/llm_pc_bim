@@ -6,8 +6,6 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
 from typing import List
-
-# Tool definition
 import ifcopenshell
 
 def get_main_ifc_entities(ifc_file_path: str):
