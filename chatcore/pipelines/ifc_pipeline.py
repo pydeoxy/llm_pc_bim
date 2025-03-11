@@ -49,13 +49,13 @@ def create_ifc_pipeline(
     # Define routing conditions
     routes = [
         {
-            "condition": "{{'ifcentit' in messages[0].text}}",
+            "condition": "{{'ifcentit' in messages[0].text.lower()}}",
             "output": "{{messages[0]}}",
             "output_name": "ifc_entity_tool_calls",
             "output_type": ChatMessage,  # Use direct type
         },
         {
-            "condition": "{{'ifcentit' not in messages}}",
+            "condition": "{{'ifcentit' not in messages[0].text.lower()}}",
             "output": "{{messages}}",
             "output_name": "no_tool_calls",
             "output_type": List[ChatMessage],  # Use direct type

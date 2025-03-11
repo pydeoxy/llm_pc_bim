@@ -25,6 +25,7 @@ def pc_visual(pc_file_path: str):
         return None
     
     o3d.visualization.draw_geometries([pcd], point_show_normal=False)
+    return "Point cloud visualized"
 
 pc_visual_tool = Tool(name="pc_visual_tool",
             description="A tool to visualize a point cloud by its file path.",
@@ -66,7 +67,7 @@ def extract_pc_file_path(input_string):
         return None
 
 @component
-class IfcToolCallAssistant:
+class PcToolCallAssistant:
 
     @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
