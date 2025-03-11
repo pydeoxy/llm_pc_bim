@@ -18,7 +18,7 @@ from chatcore.pipelines.doc_pipeline import create_doc_pipeline
 from chatcore.tools.doc_processing import DocumentManager
 
 '''
-Add buttons to initialize pipelines and tool pipelines
+Add buttons to initialize pipelines and tool pipelinesf
 
 '''
 doc_pipe = Pipeline()
