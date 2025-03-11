@@ -2,13 +2,20 @@ import open3d as o3d
 import numpy as np
 from haystack import component
 from haystack.tools import Tool
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import re
 from haystack.dataclasses import ChatMessage, ToolCall
 from typing import List
 from haystack.components.tools import ToolInvoker
 
+import sys
+import os
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.utils.helpers import extract_file_path, query_similarity
+
+# Reference dictionary of tools and their possible corresponding queries
+tool_reference = {"pc_visual_tool":"Visualize the point cloud file at 'D:/path/to/your/ifc/file/pcd.ply'"}
 
 def pc_visual(pc_file_path: str):
     """
@@ -34,38 +41,6 @@ pc_visual_tool = Tool(name="pc_visual_tool",
             "properties": {"pc_file_path": {"type": "string"}},
             "required": ["pc_file_path"]})
 
-
-tool_reference = {"pc_visual_tool":"Visualize the point cloud file at 'D:/path/to/your/ifc/file/pcd.ply'"}
-
-def query_similarity(ref,query):
-    model = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight model
-    embeddings = model.encode([ref, query])
-    similarity_score = cosine_similarity(
-        [embeddings[0]],  # Reference embedding
-        [embeddings[1]]   # Comparison embedding
-    )[0][0]
-
-    return similarity_score
-
-def extract_pc_file_path(input_string):
-    """
-    Extracts the point cloud file path from a string using a regular expression.
-
-    Args:
-        input_string: The string containing the file path.
-
-    Returns:
-        The extracted file path as a string, or None if no match is found.
-    """
-    if ".pcd" in input_string:
-        match = re.search(r"[a-zA-Z]:[\\/].*\.pcd", input_string)
-    elif ".ply" in input_string:
-        match = re.search(r"[a-zA-Z]:[\\/].*\.ply", input_string)
-    if match:
-        return match.group(0)
-    else:
-        return None
-
 @component
 class PcToolCallAssistant:
 
@@ -74,7 +49,7 @@ class PcToolCallAssistant:
         if query_similarity(tool_reference["pc_visual_tool"], message.text)>0.5:
             pc_visual_tool_call = ToolCall(
                 tool_name="pc_visual_tool",
-                arguments={"pc_file_path": extract_pc_file_path(message.text)}
+                arguments={"pc_file_path": extract_file_path(message.text)}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[pc_visual_tool_call])]}
         else:

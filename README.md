@@ -19,23 +19,22 @@ python app.py
 To ensure modularity, scalability, and maintainability, the project is organized as follows:
 ```
 llm_pc_bim/
-├── .github/
-│   └── workflows/          # CI/CD pipelines (optional)
-├── chatcore/               # Core functionality package
+│   
+├── chatcore/                   # Core functionality package
 │   ├── __init__.py
-│   ├── tools/
+│   ├── tools/                  # Modular tool implementations
 │   │   ├── __init__.py
-│   │   ├── ifc_tools.py    # IFC-related functions
-│   │   ├ segmentation_tools.py
+│   │   ├── ifc_tools.py        # IFC-related functions
+│   │   ├── pc_tools.py         # Point Cloud-related functions
 │   │   └── doc_processing.py
-│   ├── pipelines/
+│   ├── pipelines/              # Haystack pipeline configurations
 │   │   ├── __init__.py
 │   │   ├── main_pipeline.py
 │   │   └── doc_pipeline.py
-│   ├── interfaces/
+│   ├── interfaces/             # Gradio UI components
 │   │   ├── __init__.py
 │   │   └── gradio_interface.py
-│   └── utils/
+│   └── utils/                  # Helper functions and utilities
 │       ├── __init__.py
 │       ├── file_handling.py
 │       └── config_loader.py

@@ -2,12 +2,23 @@ from haystack.dataclasses import ChatMessage, ToolCall
 from haystack.components.tools import ToolInvoker
 from haystack.tools import Tool
 from haystack import component
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import re
 from typing import List
 import ifcopenshell
 
+import sys
+import os
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.utils.helpers import extract_file_path, query_similarity
+
+# Reference dictionary of tools and their possible corresponding queries
+ifc_tool_reference = {"ifc_entity_tool":"List the ifc entities of an IFC file at 'D:/path/to/your/ifc/file/model.ifc'"}
+
+
+
+# Tool to get main ifc entities
 def get_main_ifc_entities(ifc_file_path: str):
     """
     Extracts main IFC entities (IfcProject, IfcSite, IfcBuilding, IfcBuildingStorey) 
@@ -47,44 +58,19 @@ ifc_entity_tool = Tool(name="ifc_entity_tool",
             "properties": {"ifc_file_path": {"type": "string"}},
             "required": ["ifc_file_path"]})
 
+# Tool to get main ifc entities
 
-tool_reference = {"ifc_entity_tool":"List the ifc entities of an IFC file at 'D:/path/to/your/ifc/file/model.ifc'"}
 
-def query_similarity(ref,query):
-    model = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight model
-    embeddings = model.encode([ref, query])
-    similarity_score = cosine_similarity(
-        [embeddings[0]],  # Reference embedding
-        [embeddings[1]]   # Comparison embedding
-    )[0][0]
-
-    return similarity_score
-
-def extract_ifc_file_path(input_string):
-    """
-    Extracts the IFC file path from a string using a regular expression.
-
-    Args:
-        input_string: The string containing the file path.
-
-    Returns:
-        The extracted file path as a string, or None if no match is found.
-    """
-    match = re.search(r"[a-zA-Z]:[\\/].*\.ifc", input_string)
-    if match:
-        return match.group(0)
-    else:
-        return None
 
 @component
 class IfcToolCallAssistant:
 
     @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
-        if query_similarity(tool_reference["ifc_entity_tool"], message.text)>0.5:
+        if query_similarity(ifc_tool_reference["ifc_entity_tool"], message.text)>0.5:
             ifc_entity_tool_call = ToolCall(
                 tool_name="ifc_entity_tool",
-                arguments={"ifc_file_path": extract_ifc_file_path(message.text)}
+                arguments={"ifc_file_path": extract_file_path(message.text)}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_entity_tool_call])]}
         else:
