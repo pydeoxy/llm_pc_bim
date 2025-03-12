@@ -13,9 +13,10 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.utils.helpers import extract_file_path, query_similarity
+from chatcore.utils.config_loader import load_path_config
 
 # Reference dictionary of tools and their possible corresponding queries
-tool_reference = {"pc_visual_tool":"Visualize the point cloud file at 'D:/path/to/your/ifc/file/pcd.ply'"}
+tool_reference = {"pc_visual_tool":"Visualize the point cloud file."}
 
 def pc_visual(pc_file_path: str):
     """
@@ -41,6 +42,9 @@ pc_visual_tool = Tool(name="pc_visual_tool",
             "properties": {"pc_file_path": {"type": "string"}},
             "required": ["pc_file_path"]})
 
+# Load paths from shared JSON file
+paths = load_path_config()
+
 @component
 class PcToolCallAssistant:
 
@@ -49,7 +53,7 @@ class PcToolCallAssistant:
         if query_similarity(tool_reference["pc_visual_tool"], message.text)>0.5:
             pc_visual_tool_call = ToolCall(
                 tool_name="pc_visual_tool",
-                arguments={"pc_file_path": extract_file_path(message.text)}
+                arguments={"pc_file_path": paths["pc_file_path"]}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[pc_visual_tool_call])]}
         else:

@@ -1,8 +1,6 @@
 # .gitignore
 .env
-*.ifc
-*.ply
-*.pcd
+config.json
 __pycache__/
 models/
 docs/

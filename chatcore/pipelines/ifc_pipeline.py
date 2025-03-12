@@ -18,6 +18,7 @@ from chatcore.tools.ifc_tool import ifc_entity_tool, IfcToolCallAssistant
 
 # Initialize the ChatGenerator
 # Chat LLM    
+'''
 llm_chat = HuggingFaceLocalChatGenerator(
         model="meta-llama/Llama-3.2-3B-Instruct", #llm_config["model_name"],
         huggingface_pipeline_kwargs={
@@ -25,6 +26,7 @@ llm_chat = HuggingFaceLocalChatGenerator(
             "torch_dtype": "float16"
         }
     )
+'''    
 
 #llm_chat.warm_up()
 
@@ -91,7 +93,7 @@ def create_ifc_pipeline(
 if __name__ == "__main__":
     # Example user message
     ifc_pipe = create_ifc_pipeline()
-    user_message = ChatMessage.from_user("List the ifcentities of the ifc file at 'C:/Users/yanpe/Documents/temp/Riihimaki.ifc'")
+    user_message = ChatMessage.from_user("List the ifcentities of the ifc file.")
     #user_message = ChatMessage.from_user("Where is Helsinki?")
     # Run the pipeline
     result = ifc_pipe.run({"messages": [user_message]})

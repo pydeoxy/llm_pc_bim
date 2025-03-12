@@ -12,9 +12,10 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.utils.helpers import extract_file_path, query_similarity
+from chatcore.utils.config_loader import load_path_config
 
 # Reference dictionary of tools and their possible corresponding queries
-ifc_tool_reference = {"ifc_entity_tool":"List the ifc entities of an IFC file at 'D:/path/to/your/ifc/file/model.ifc'"}
+ifc_tool_reference = {"ifc_entity_tool":"List the ifc entities of the IFC file."}
 
 
 
@@ -60,7 +61,8 @@ ifc_entity_tool = Tool(name="ifc_entity_tool",
 
 # Tool to get main ifc entities
 
-
+# Load paths from shared JSON file
+paths = load_path_config()
 
 @component
 class IfcToolCallAssistant:
@@ -70,7 +72,7 @@ class IfcToolCallAssistant:
         if query_similarity(ifc_tool_reference["ifc_entity_tool"], message.text)>0.5:
             ifc_entity_tool_call = ToolCall(
                 tool_name="ifc_entity_tool",
-                arguments={"ifc_file_path": extract_file_path(message.text)}
+                arguments={"ifc_file_path": paths["ifc_file_path"]}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_entity_tool_call])]}
         else:

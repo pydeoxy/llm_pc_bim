@@ -26,7 +26,7 @@ doc_pipe = Pipeline()
 def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     """Update JSON config and process documents into Haystack's document store."""
     config = {}
-    if os.path.exists("config.json"):
+    if os.path.exists("config/config.json"):
         with open("config.json", "r") as f:
             config = json.load(f)
     
@@ -50,7 +50,7 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
         config.pop("folder_path", None)
     
     # Save config
-    with open("config.json", "w") as f:
+    with open("config/config.json", "w") as f:
         json.dump(config, f)    
     
     return None

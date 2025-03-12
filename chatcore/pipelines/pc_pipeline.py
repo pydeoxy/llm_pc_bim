@@ -77,9 +77,8 @@ def create_pc_pipeline(
 
 if __name__ == "__main__":
     # Example user message
-    pc_pipe = create_pc_pipeline()
-    pcd_path = "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Research/data/smartlab/SmartLab_2024_E57_Single_5mm.pcd"
-    user_message = ChatMessage.from_user(f"Visualize the point cloud at '{pcd_path}'")
+    pc_pipe = create_pc_pipeline()    
+    user_message = ChatMessage.from_user(f"Visualize the point cloud")
     #user_message = ChatMessage.from_user("Where is Helsinki?")
     # Run the pipeline
     result = pc_pipe.run({"messages": [user_message]})
