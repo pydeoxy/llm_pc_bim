@@ -5,6 +5,7 @@ from haystack.tools import Tool
 from haystack.dataclasses import ChatMessage, ToolCall
 from typing import List
 from haystack.components.tools import ToolInvoker
+import threading
 
 import sys
 import os
@@ -18,21 +19,30 @@ from chatcore.utils.config_loader import load_path_config
 # Reference dictionary of tools and their possible corresponding queries
 tool_reference = {"pc_visual_tool":"Visualize the point cloud file."}
 
+def visualize_point_cloud(pcd):
+    # This will open the Open3D visualization window in a blocking manner,
+    # but since it's in a separate thread, it won't block the main thread.
+    o3d.visualization.draw_geometries([pcd], point_show_normal=False)
+
 def pc_visual(pc_file_path: str):
     """
-    Visualize the point cloud file.
+    Visualize the point cloud file in a separate thread so the function
+    can return a message immediately.
 
     Args:
         pc_file_path (str): The path to the point cloud file.
-    
     """
     try:
         pcd = o3d.io.read_point_cloud(pc_file_path)
     except IOError:
         print(f"Error: Could not open point cloud file at {pc_file_path}")
         return None
+
+    # Start the visualization in a separate thread
+    vis_thread = threading.Thread(target=visualize_point_cloud, args=(pcd,))
+    vis_thread.start()
     
-    o3d.visualization.draw_geometries([pcd], point_show_normal=False)
+    # Immediately return the final message
     return "Point cloud visualized"
 
 pc_visual_tool = Tool(name="pc_visual_tool",
@@ -75,6 +85,6 @@ if __name__ == '__main__':
     
     # ToolInvoker initialization and run
     invoker = ToolInvoker(tools=[pc_visual_tool])
-    invoker.run(messages=[message])
+    result = invoker.run(messages=[message])
 
-    #print(result)
+    print(result)

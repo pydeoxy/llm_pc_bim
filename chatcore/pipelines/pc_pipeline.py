@@ -82,6 +82,6 @@ if __name__ == "__main__":
     #user_message = ChatMessage.from_user("Where is Helsinki?")
     # Run the pipeline
     result = pc_pipe.run({"messages": [user_message]})
-    #print(result)
+    print(result)
     
 

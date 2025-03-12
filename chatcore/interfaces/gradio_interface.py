@@ -8,6 +8,7 @@ from haystack.components.generators import HuggingFaceLocalGenerator
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import json
 from haystack import Pipeline
+from haystack.dataclasses import ChatMessage
 
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
@@ -15,6 +16,8 @@ if repo_root not in sys.path:
 
 from chatcore.utils.config_loader import load_llm_config
 from chatcore.pipelines.doc_pipeline import create_doc_pipeline
+from chatcore.pipelines.ifc_pipeline import create_ifc_pipeline
+from chatcore.pipelines.pc_pipeline import create_pc_pipeline
 from chatcore.tools.doc_processing import DocumentManager
 
 '''
@@ -22,9 +25,12 @@ Add buttons to initialize pipelines and tool pipelinesf
 
 '''
 doc_pipe = Pipeline()
+ifc_pipe = Pipeline()
+pc_pipe = Pipeline()
 
 def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     """Update JSON config and process documents into Haystack's document store."""
+    global ifc_pipe, pc_pipe
     config = {}
     if os.path.exists("config/config.json"):
         with open("config.json", "r") as f:
@@ -33,11 +39,13 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     # Update file path (handle temporary uploads)
     if ifc_file_input is not None:
         config["ifc_file_path"] = ifc_file_input.name  # Store uploaded file's persistent path
+        ifc_pipe = create_ifc_pipeline()
     else:
         config.pop("ifc_file_path", None)
 
     if pc_file_input is not None:
         config["pc_file_path"] = pc_file_input.name  # Store uploaded file's persistent path
+        pc_pipe = create_pc_pipeline()
     else:
         config.pop("pc_file_path", None)
     
@@ -89,19 +97,23 @@ def response_docs(query):
     result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
     return result["router"]["answer"]
 
-def response_ifc(ifc_path, query):
-    return f'IFC file found from {ifc_path}. I will answer your question about the IFC file.'
+def response_ifc(query):
+    user_message = ChatMessage.from_user(query)    
+    result = ifc_pipe.run({"messages": [user_message]})
+    return result['tool_invoker']['tool_messages'][0].tool_call_result.result
 
-def response_pc(pc_path, query):    
-    return f'Point Cloud file found from {pc_path}. I will answer your question about the Point Cloud file.'
+def response_pc(query):    
+    user_message = ChatMessage.from_user(query)    
+    result = pc_pipe.run({"messages": [user_message]})
+    return result['tool_invoker']['tool_messages'][0].tool_call_result.result
 
 def generate_response(message, history, ifc_path, pc_path, folder_path):
     """Generate response with file/folder context"""     
     
     if ifc_path and 'ifc' in message.lower():
-        answer = response_ifc(ifc_path, message)
+        answer = response_ifc(message)
     elif pc_path and 'point cloud' in message.lower():
-        answer = response_pc(pc_path, message)   
+        answer = response_pc(message)   
     elif folder_path and 'project' in message.lower():
         answer = response_docs(message)
     else:
