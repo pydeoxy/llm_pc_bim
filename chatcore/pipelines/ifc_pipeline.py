@@ -30,6 +30,13 @@ llm_chat = HuggingFaceLocalChatGenerator(
 
 #llm_chat.warm_up()
 
+@component
+class NoFunctionCall:
+
+    @component.output_types(no_call_message=ChatMessage)
+    def run(self, message: ChatMessage) -> dict:
+        return {"no_call_message":[ChatMessage.from_assistant("No function calling founded.")]}
+
 def create_ifc_pipeline(
     #ifc_file: Any,
     #llm: Any,
@@ -58,9 +65,9 @@ def create_ifc_pipeline(
         },
         {
             "condition": "{{'ifcentit' not in messages[0].text.lower()}}",
-            "output": "{{messages}}",
+            "output": "{{messages[0]}}",
             "output_name": "no_tool_calls",
-            "output_type": List[ChatMessage],  # Use direct type
+            "output_type": ChatMessage,  # Use direct type
         },
     ]
 
@@ -70,6 +77,7 @@ def create_ifc_pipeline(
     # Initialize the ToolInvoker with the weather tool
     ifc_tool_checker = IfcToolCallAssistant()
     tool_invoker = ToolInvoker(tools=[ifc_entity_tool])
+    no_call_helper = NoFunctionCall()
 
     # Create the pipeline
     pipeline = Pipeline()
@@ -77,12 +85,13 @@ def create_ifc_pipeline(
     pipeline.add_component("router", router)
     pipeline.add_component("tool_checker", ifc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
+    pipeline.add_component("no_call_helper", no_call_helper)
 
     # Connect components
     #pipeline.connect("generator.replies", "router")
     pipeline.connect("router.ifc_entity_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
-    #pipeline.connect("router.no_tool_calls", "generator") # Correct connection
+    pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
 
     # Critical connection: Feed tool results back to generator
     #pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line
@@ -93,17 +102,15 @@ def create_ifc_pipeline(
 if __name__ == "__main__":
     # Example user message
     ifc_pipe = create_ifc_pipeline()
-    #user_message = ChatMessage.from_user("List the ifcentities of the ifc file.")
+    #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
     user_message = ChatMessage.from_user("Summarize the ifc file.")
     # Run the pipeline
     result = ifc_pipe.run({"messages": [user_message]})
 
-
-    #ifc_tool_checker = IfcToolCallAssistant()
-    #assistant = ifc_tool_checker.run(user_message)
-    #invoker = ToolInvoker(tools=[ifc_entity_tool])
-    #result = invoker.run([assistant])
     print(result)
+    # Contents of tool calling
     #print(result['tool_invoker']['tool_messages'][0].tool_call_result.result)
+    # Contents of no tool calling
+    #print(result['no_call_helper']['no_call_message'][0].text)
 
 

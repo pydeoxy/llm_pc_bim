@@ -6,6 +6,7 @@ from typing import List, Any
 from haystack.components.generators import HuggingFaceLocalGenerator
 from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 from haystack import component
+from ifc_pipeline import NoFunctionCall
 
 import sys
 import os
@@ -43,9 +44,9 @@ def create_pc_pipeline(
         },
         {
             "condition": "{{'visual' not in messages[0].text.lower()}}",
-            "output": "{{messages}}",
+            "output": "{{messages[0]}}",
             "output_name": "no_tool_calls",
-            "output_type": List[ChatMessage],  # Use direct type
+            "output_type": ChatMessage,  # Use direct type
         },
     ]
 
@@ -55,6 +56,7 @@ def create_pc_pipeline(
     # Initialize the ToolInvoker with the weather tool
     pc_tool_checker = PcToolCallAssistant()
     tool_invoker = ToolInvoker(tools=[pc_visual_tool])
+    no_call_helper = NoFunctionCall()
 
     # Create the pipeline
     pipeline = Pipeline()
@@ -62,12 +64,13 @@ def create_pc_pipeline(
     pipeline.add_component("router", router)
     pipeline.add_component("tool_checker", pc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
+    pipeline.add_component("no_call_helper", no_call_helper)
 
     # Connect components
     #pipeline.connect("generator.replies", "router")
     pipeline.connect("router.pc_visual_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
-    #pipeline.connect("router.no_tool_calls", "generator") # Correct connection
+    pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
 
     # Critical connection: Feed tool results back to generator
     #pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line

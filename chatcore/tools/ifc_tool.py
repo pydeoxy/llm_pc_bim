@@ -15,7 +15,7 @@ from chatcore.utils.helpers import extract_file_path, query_similarity
 from chatcore.utils.config_loader import load_path_config
 
 # Reference dictionary of tools and their possible corresponding queries
-ifc_tool_reference = {"ifc_entity_tool":"List the ifc entities of the IFC file."}
+ifc_tool_reference = {"ifc_entity_tool":"List the main ifc entities of the IFC file."}
 
 
 

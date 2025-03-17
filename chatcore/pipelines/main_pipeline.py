@@ -12,7 +12,7 @@ from haystack.components.tools import ToolInvoker
 
 from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 
-
+import ifc_pipeline, pc_pipeline, doc_pipeline
 
 import sys
 import os
@@ -20,7 +20,7 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.tools import ifc_tool, seg_tool
+from chatcore.tools import ifc_tool, pc_tool
 
 # Websearch in the last
 
@@ -49,10 +49,7 @@ A[Query] --> B(Retriever)
 
 
 def create_main_pipeline(
-    llm: Any,
-    ifc_pipeline: Pipeline, 
-    pc_pipeline: Pipeline, 
-    doc_pipeline: Pipeline    
+    llm: Any    
 ) -> Pipeline:
     """
     Creates and configures the main processing pipeline with routing logic
@@ -98,8 +95,8 @@ def create_main_pipeline(
 
     # Connect components based on routing
     # Prompt missing
-    pipeline.connect("router.go_to_ifctool", "ifc_pipeline.query") 
-    pipeline.connect("router.go_to_segtool", "pc_pipeline.query") 
+    pipeline.connect("router.go_to_ifcpipeline", "ifc_pipeline.query") 
+    pipeline.connect("router.go_to_pcpipeline", "pc_pipeline.query") 
     pipeline.connect("router.go_to_docpipeline", "doc_pipeline.query")
     # Answers through the ifc or seg tools should be finalize with llm
 
@@ -142,7 +139,7 @@ if __name__ == "__main__":
 
     main_pipe = create_main_pipeline(
         ifc_tool,
-        seg_tool,
+        pc_tool,
         doc_pipeline=doc_pipe
     )
 
