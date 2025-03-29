@@ -49,7 +49,8 @@ A[Query] --> B(Retriever)
 
 
 def create_main_pipeline(
-    llm: Any    
+    llm: Any,
+    web_search: Any
 ) -> Pipeline:
     """
     Creates and configures the main processing pipeline with routing logic

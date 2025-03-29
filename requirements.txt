@@ -4,3 +4,6 @@ transformers
 haystack-ai
 python-dotenv
 sentence-transformers
+pyvista
+pyvistaqt
+pyqt5
