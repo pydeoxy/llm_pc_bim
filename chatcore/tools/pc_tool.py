@@ -5,7 +5,7 @@ from haystack.tools import Tool
 from haystack.dataclasses import ChatMessage, ToolCall
 from typing import List
 from haystack.components.tools import ToolInvoker
-import threading
+import multiprocessing
 
 import sys
 import os
@@ -19,31 +19,25 @@ from chatcore.utils.config_loader import load_path_config
 # Reference dictionary of tools and their possible corresponding queries
 tool_reference = {"pc_visual_tool":"Visualize the point cloud file."}
 
-def visualize_point_cloud(pcd):
-    # This will open the Open3D visualization window in a blocking manner,
-    # but since it's in a separate thread, it won't block the main thread.
-    o3d.visualization.draw_geometries([pcd], point_show_normal=False)
-
-def pc_visual(pc_file_path: str):
-    """
-    Visualize the point cloud file in a separate thread so the function
-    can return a message immediately.
-
-    Args:
-        pc_file_path (str): The path to the point cloud file.
-    """
+def visualize_point_cloud(pc_file_path):
     try:
         pcd = o3d.io.read_point_cloud(pc_file_path)
+        o3d.visualization.draw_geometries([pcd], point_show_normal=False)
     except IOError:
         print(f"Error: Could not open point cloud file at {pc_file_path}")
-        return None
 
-    # Start the visualization in a separate thread
-    vis_thread = threading.Thread(target=visualize_point_cloud, args=(pcd,))
-    vis_thread.start()
+def pc_visual(pc_file_path: str):
+    if not os.path.exists(pc_file_path):
+        return f"Error: File not found at {pc_file_path}"
+
+    # Start visualization in a separate process
+    vis_process = multiprocessing.Process(
+        target=visualize_point_cloud, args=(pc_file_path,)
+    )
+    vis_process.start()
     
-    # Immediately return the final message
-    return "Point cloud visualized"
+    # Return message immediately
+    return "Point cloud visualization started"
 
 pc_visual_tool = Tool(name="pc_visual_tool",
             description="A tool to visualize a point cloud by its file path.",
