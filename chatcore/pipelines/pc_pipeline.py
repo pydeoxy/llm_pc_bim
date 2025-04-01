@@ -6,7 +6,6 @@ from typing import List, Any
 from haystack.components.generators import HuggingFaceLocalGenerator
 from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 from haystack import component
-from ifc_pipeline import NoFunctionCall
 
 import sys
 import os
@@ -15,6 +14,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.pc_tool import pc_visual_tool, PcToolCallAssistant
+from chatcore.pipelines.ifc_pipeline import NoFunctionCall
 
 def create_pc_pipeline(
     #pc_file: Any,

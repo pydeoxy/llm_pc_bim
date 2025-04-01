@@ -13,7 +13,7 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.utils.helpers import extract_file_path, query_similarity
+from chatcore.utils.helpers import query_similarity
 from chatcore.utils.config_loader import load_path_config
 
 # Reference dictionary of tools and their possible corresponding queries
@@ -67,7 +67,7 @@ class PcToolCallAssistant:
 
 if __name__ == '__main__':   
 
-    pcd_path = "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Research/data/smartlab/SmartLab_2024_E57_Single_5mm.pcd"
+    pcd_path = "C:\\Users\\yanpe\\AppData\\Local\\Temp\\gradio\\a5e6cc308c51e7cd1c986031c873c2bb82b71dc9bb64f5b2775a7eb2065c5ce8\\SmartLab_2024_E57_Single_5mm.pcd"
 
     pc_visual_tool_call = ToolCall(
         tool_name="pc_visual_tool",

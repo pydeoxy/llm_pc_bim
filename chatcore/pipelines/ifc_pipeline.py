@@ -102,8 +102,8 @@ def create_ifc_pipeline(
 if __name__ == "__main__":
     # Example user message
     ifc_pipe = create_ifc_pipeline()
-    #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
-    user_message = ChatMessage.from_user("Summarize the ifc file.")
+    user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
+    #user_message = ChatMessage.from_user("Summarize the ifc file.")
     # Run the pipeline
     result = ifc_pipe.run({"messages": [user_message]})
 

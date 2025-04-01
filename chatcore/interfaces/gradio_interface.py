@@ -141,8 +141,8 @@ def create_interface():
         gr.Markdown("# 📁 Chat with Files & Folders")
         
         with gr.Row():
-            ifc_file_input = gr.File(label="Select Your IFC File")
-            pc_file_input = gr.File(label="Select Your Point Cloud File")
+            ifc_file_input = gr.File(label="Select Your IFC File (.ifc)")
+            pc_file_input = gr.File(label="Select Your Point Cloud File (.pcd or .ply)")
             folder_input = gr.Textbox(label="Select Your Folder Path of Documents")
 
         # Update config on input changes
@@ -151,7 +151,7 @@ def create_interface():
             inputs=[ifc_file_input, pc_file_input, folder_input],
             outputs=None
         )
-        ifc_file_input.change(
+        pc_file_input.change(
             fn=update_config_and_index,
             inputs=[ifc_file_input, pc_file_input, folder_input],
             outputs=None
