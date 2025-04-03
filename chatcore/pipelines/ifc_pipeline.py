@@ -13,7 +13,7 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.tools.ifc_tool import ifc_entity_tool, IfcToolCallAssistant
+from chatcore.tools.ifc_tool import ifc_entity_tool, ifc_query_tool, IfcToolCallAssistant
 
 
 # Initialize the ChatGenerator
@@ -38,7 +38,7 @@ class NoFunctionCall:
         return {"no_call_message":[ChatMessage.from_assistant("No function calling founded.")]}
 
 def create_ifc_pipeline(
-    #ifc_file: Any,
+    ifc_file_path: str,
     #llm: Any,
     #web_search: Any
     ) -> Pipeline:
@@ -74,9 +74,9 @@ def create_ifc_pipeline(
     # Initialize the ConditionalRouter
     router = ConditionalRouter(routes, unsafe=True)
 
-    # Initialize the ToolInvoker with the weather tool
-    ifc_tool_checker = IfcToolCallAssistant()
-    tool_invoker = ToolInvoker(tools=[ifc_entity_tool])
+    # Initialize the ToolInvoker with the ifc tools
+    ifc_tool_checker = IfcToolCallAssistant(ifc_file_path)
+    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool])
     no_call_helper = NoFunctionCall()
 
     # Create the pipeline
@@ -100,10 +100,15 @@ def create_ifc_pipeline(
 
 
 if __name__ == "__main__":
+    import json
     # Example user message
-    ifc_pipe = create_ifc_pipeline()
-    user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
-    #user_message = ChatMessage.from_user("Summarize the ifc file.")
+    with open("config.json", "r") as f:
+        config = json.load(f)
+    
+    ifc_file_path = config["ifc_file_path"]
+    ifc_pipe = create_ifc_pipeline(ifc_file_path)
+    #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
+    user_message = ChatMessage.from_user("How many IfcWindow are there in the IFC file?")
     # Run the pipeline
     result = ifc_pipe.run({"messages": [user_message]})
 
