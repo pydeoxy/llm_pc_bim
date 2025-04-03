@@ -15,9 +15,8 @@ from chatcore.utils.helpers import query_similarity
 from chatcore.utils.config_loader import load_path_config
 
 # Reference dictionary of tools and their possible corresponding queries
-ifc_tool_reference = {"ifc_entity_tool":"List the main ifc entities of the IFC file."}
-
-
+ifc_tool_reference = {"ifc_entity_tool":"List the main ifc entities of the IFC file.",
+                      "ifc_query_tool":"How many IfcEntity are there in the IFC file?"}
 
 # Tool to get main ifc entities
 def get_main_ifc_entities(ifc_file_path: str):
@@ -59,7 +58,35 @@ ifc_entity_tool = Tool(name="ifc_entity_tool",
             "properties": {"ifc_file_path": {"type": "string"}},
             "required": ["ifc_file_path"]})
 
-# Tool to get main ifc entities
+# Tool to get number of an IfcEntity by its name
+def query_ifc_entity(ifc_file_path: str, entity_name: str):
+    """
+    Provide the number of an given IfcEntity in the IFC file.
+
+    Args:
+        ifc_file_path (str): The path to the IFC file.
+        entity_name (str): The name of IfcEntity to be queried.
+
+    Returns:
+        dict: A dictionary containing the IfcEntity queried and its total number.
+    """
+    try:
+        ifc_file = ifcopenshell.open(ifc_file_path)
+        entity_count = ifc_file.by_type(entity_name)  # Directly get entities of specified type.
+        return {entity_name:len(entity_count)}
+    except IOError:
+        return {"Error": f"Could not open file at {ifc_file_path}"}        
+    except Exception as e:
+        return {"Error": f"{e}"}
+
+
+ifc_query_tool = Tool(name="ifc_query_tool",
+            description="A tool to query the number of an IfcEntity in the IFC file.",
+            function=query_ifc_entity,
+            parameters={"type": "object",
+            "properties": {"ifc_file_path": {"type": "string"},
+                           "entity_name":{"type": "string"}},
+            "required": ["ifc_file_path", "entity_name"]})
 
 # Load paths from shared JSON file
 paths = load_path_config()
