@@ -39,7 +39,7 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     # Update file path (handle temporary uploads)
     if ifc_file_input is not None:
         config["ifc_file_path"] = ifc_file_input.name  # Store uploaded file's persistent path
-        ifc_pipe = create_ifc_pipeline()
+        ifc_pipe = create_ifc_pipeline(ifc_file_input.name)
     else:
         config.pop("ifc_file_path", None)
 
