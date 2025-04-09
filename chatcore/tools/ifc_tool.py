@@ -74,7 +74,7 @@ def query_ifc_entity(ifc_file_path: str, entity_name: str):
     try:
         ifc_file = ifcopenshell.open(ifc_file_path)
         entity_count = ifc_file.by_type(entity_name)  # Directly get entities of specified type.
-        return {entity_name:len(entity_count)}
+        return {"Result":f"{len(entity_count)} {entity_name} instances found in the IFC file."}
     except IOError:
         return {"Error": f"Could not open file at {ifc_file_path}"}        
     except Exception as e:
