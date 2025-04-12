@@ -4,6 +4,7 @@ transformers
 haystack-ai
 python-dotenv
 sentence-transformers
-pyvista
-pyvistaqt
-pyqt5
+open3d
+torch-geometric
+torch-cluster
+h5py
