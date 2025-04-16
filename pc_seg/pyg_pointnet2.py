@@ -158,7 +158,7 @@ class PointNet2LoRa(torch.nn.Module):
         return self.mlp(x).log_softmax(dim=-1)
 
 # Model for LoRa training, lora weights added, colorless
-class PointNet2LoRa(torch.nn.Module):
+class PyGPointNet2NoColorLoRa(torch.nn.Module):
     def __init__(self, num_classes, lora_r=8, lora_alpha=16):
         super().__init__()
 

@@ -1,0 +1,18 @@
+import ifcopenshell
+import sys
+import os
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.tools.ifc_tool import query_ifc_entity,get_main_ifc_entities
+from chatcore.tools.pc_tool import visualize_point_cloud
+
+if __name__ == "__main__":
+    ifc_file_path = "docs/smartLab.ifc"
+    #print(query_ifc_entity(ifc_file_path=ifc_file_path, entity_name= "IfcDoor"))
+    #print(get_main_ifc_entities(ifc_file_path))
+
+    #pc_file_path = "docs/SmartLab_2024_E57_Single_5mm.pcd"
+    pc_file_path = "docs/smartLab_simulated.ply"
+    visualize_point_cloud(pc_file_path)
