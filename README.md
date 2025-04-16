@@ -41,6 +41,11 @@ llm_pc_bim/
 │       ├── config_loader.py    # Loading LLM and file configurations
 │       ├── helpers.py          # Helper functions
 │       └── prompts.py          # Prompts and prompt templates
+├── docs/                   # Documentation and model files
+├── config/                 # Configuration files
+│   ├── config.json         # Exchange file and folder locations for LLM pipelines
+│   └── settings.yaml       # LLM settings
+├── app.py                  # Main application entry point
 ├── pc_seg/                     # Scripts for semantic segmentation of point clouds
 │   ├── checkpoints/            # ML checkpoints for semantic segmentation
 │   ├── pc_dataset.py           # HDF5 dataset for point cloud
@@ -55,11 +60,6 @@ llm_pc_bim/
 │   ├── lora_train.ipynb        # LoRa training with simulated point cloud
 │   └── lora_predict.ipynb      # Prediction of labels with pre-trained model and LoRa weights
 ├── tests/                  # Tests and temporary scripts
-├── docs/                   # Documentation and model files
-├── config/                 # Configuration files
-│   ├── config.json         # Exchange file and folder locations for LLM pipelines
-│   └── settings.yaml       # LLM settings
-├── app.py                  # Main application entry point
 ├── requirements.txt        # Dependencies
 ├── README.md       
 └── .gitignore
