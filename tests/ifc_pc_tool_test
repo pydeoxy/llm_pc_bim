@@ -10,9 +10,33 @@ from chatcore.tools.pc_tool import visualize_point_cloud
 
 if __name__ == "__main__":
     ifc_file_path = "docs/smartLab.ifc"
-    #print(query_ifc_entity(ifc_file_path=ifc_file_path, entity_name= "IfcDoor"))
+    entities = [
+        "IfcSlab",
+        "IfcDoor",
+        "IfcWindow",
+        "IfcColumn",
+        "IfcBeam"
+    ]
+    
+    for entity in entities:
+        print(query_ifc_entity(ifc_file_path=ifc_file_path, entity_name=entity))
     #print(get_main_ifc_entities(ifc_file_path))
 
     #pc_file_path = "docs/SmartLab_2024_E57_Single_5mm.pcd"
-    pc_file_path = "docs/smartLab_simulated.ply"
-    visualize_point_cloud(pc_file_path)
+    #pc_file_path = "docs/smartLab_simulated.ply"
+
+    #pc_file_path = r"C:\Users\yanpe\OneDrive - Metropolia Ammattikorkeakoulu Oy\Research\data\smartlab\labelled\Smartlab_aalto_pcd_corner_norm_label_pointnet2_x6_0.03_20250414.ply"
+
+    #pc_file_path = r"C:\Users\yanpe\OneDrive - Metropolia Ammattikorkeakoulu Oy\Research\data\smartlab\labelled\Smartlab_aalto_pcd_moved_label_pointnet2__x3_0.03_20250416.ply"
+
+    #pc_file_path = r"C:\Users\yanpe\OneDrive - Metropolia Ammattikorkeakoulu Oy\Research\data\smartlab\labelled\Smartlab_aalto_pcd_center_norm_label_pointnet2_x3_0.03_20250415.ply"
+
+    #pc_file_path = r"C:\Users\yanpe\OneDrive - Metropolia Ammattikorkeakoulu Oy\Research\data\smartlab\labelled\Smartlab_mml_pcd_centered_label_pointnet2_x6_0.05_20241112.ply"
+
+    #pc_file_path = r"C:\Users\yanpe\OneDrive - Metropolia Ammattikorkeakoulu Oy\Research\data\smartlab\labelled\Smartlab_aalto_pcd_ifctrained_bw_label_pointnet2_x6_0.02_20250412.ply"
+
+    #pc_file_path = r"C:\Users\yanpe\OneDrive - Metropolia Ammattikorkeakoulu Oy\Research\data\smartlab\labelled\Smartlab_aalto_pcd_finetuned_label_pointnet2_x3_0.03_20250416.ply"
+
+
+
+    #visualize_point_cloud(pc_file_path)

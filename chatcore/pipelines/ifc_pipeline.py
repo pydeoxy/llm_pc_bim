@@ -107,6 +107,10 @@ if __name__ == "__main__":
     
     ifc_file_path = config["ifc_file_path"]
     ifc_pipe = create_ifc_pipeline(ifc_file_path)
+
+    # Visualizing the pipeline 
+    ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
+
     #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
     user_message = ChatMessage.from_user("How many IfcWindow are there in the IFC file?")
     # Run the pipeline

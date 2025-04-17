@@ -59,7 +59,10 @@ A[Query] --> B(Retriever)
 
 def create_main_pipeline(
     llm: Any,
-    doc_pipeline: Pipeline
+    doc_pipeline: Pipeline,
+    ifc_pipeline: Pipeline,
+    pc_pipeline: Pipeline,
+    web_search: Any
 ) -> Pipeline:
     """
     Creates and configures the main processing pipeline with routing logic
@@ -94,16 +97,17 @@ def create_main_pipeline(
             "output": {"doc_route": True},
             "output_name": "go_to_docpipeline",
             "output_type": str,
-        }
+        },
+        {
+            "condition": "{{'no_answer' not in replies[0]}}",
+            "output": "{{replies[0]}}",
+            "output_name": "answer",
+            "output_type": str,
+        },
     ]
 
     # Initialize the ConditionalRouter
-    router = ConditionalRouter(router_conditions , unsafe=True)
-
-    # Initialize the ToolInvoker with the weather tool
-    ifc_pipe = IfcToolCallAssistant()
-    tool_invoker = ToolInvoker(tools=[ifc_entity_tool])
-    no_call_helper = NoFunctionCall()
+    router = ConditionalRouter(router_conditions , unsafe=True)    
 
     pipeline = Pipeline()
     pipeline.add_component("router", ConditionalRouter(router_conditions))
