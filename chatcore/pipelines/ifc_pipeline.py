@@ -60,7 +60,7 @@ def create_ifc_pipeline(
         {
             "condition": "{{'ifc' in messages[0].text.lower()}}",
             "output": "{{messages[0]}}",
-            "output_name": "ifc_entity_tool_calls",
+            "output_name": "ifc_tool_calls",
             "output_type": ChatMessage,  # Use direct type
         },
         {
@@ -89,7 +89,7 @@ def create_ifc_pipeline(
 
     # Connect components
     #pipeline.connect("generator.replies", "router")
-    pipeline.connect("router.ifc_entity_tool_calls", "tool_checker.message")  
+    pipeline.connect("router.ifc_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
     pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
 

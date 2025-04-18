@@ -37,13 +37,13 @@ def create_pc_pipeline(
     # Define routing conditions
     routes = [
         {
-            "condition": "{{'visual' in messages[0].text.lower()}}",
+            "condition": "{{'point' in messages[0].text.lower()}}",
             "output": "{{messages[0]}}",
-            "output_name": "pc_visual_tool_calls",
+            "output_name": "pc_tool_calls",
             "output_type": ChatMessage,  # Use direct type
         },
         {
-            "condition": "{{'visual' not in messages[0].text.lower()}}",
+            "condition": "{{'point' not in messages[0].text.lower()}}",
             "output": "{{messages[0]}}",
             "output_name": "no_tool_calls",
             "output_type": ChatMessage,  # Use direct type
@@ -68,7 +68,7 @@ def create_pc_pipeline(
 
     # Connect components
     #pipeline.connect("generator.replies", "router")
-    pipeline.connect("router.pc_visual_tool_calls", "tool_checker.message")  
+    pipeline.connect("router.pc_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
     pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
 
@@ -81,8 +81,9 @@ def create_pc_pipeline(
 if __name__ == "__main__":
     # Example user message
     pc_pipe = create_pc_pipeline()    
-    user_message = ChatMessage.from_user(f"Visualize the point cloud")
-    #user_message = ChatMessage.from_user("Where is Helsinki?")
+    user_message = ChatMessage.from_user("Visualize the point cloud")
+    #user_message = ChatMessage.from_user("Where is Finland?")
+    #user_message = ChatMessage.from_user("How many points are there in the point cloud?")
     # Run the pipeline
     result = pc_pipe.run({"messages": [user_message]})
     print(result)

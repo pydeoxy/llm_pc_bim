@@ -54,7 +54,7 @@ class PcToolCallAssistant:
 
     @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
-        if query_similarity(tool_reference["pc_visual_tool"], message.text)>0.5:
+        if query_similarity(tool_reference["pc_visual_tool"], message.text)>0.6:
             pc_visual_tool_call = ToolCall(
                 tool_name="pc_visual_tool",
                 arguments={"pc_file_path": paths["pc_file_path"]}
@@ -79,6 +79,10 @@ if __name__ == '__main__':
     
     # ToolInvoker initialization and run
     invoker = ToolInvoker(tools=[pc_visual_tool])
-    result = invoker.run(messages=[message])
+    #result = invoker.run(messages=[message])
 
-    print(result)
+    #print(result)
+
+    query = "How many points are there in the point cloud?"
+    print(query_similarity(tool_reference["pc_visual_tool"], query))
+    print(query_similarity("the point cloud", query))

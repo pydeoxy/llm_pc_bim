@@ -1,18 +1,9 @@
-from haystack import Pipeline
+from haystack import Pipeline,component
+from haystack.dataclasses import ChatMessage
 from haystack.components.routers import ConditionalRouter
+from haystack.components.builders import PromptBuilder
+from haystack.components.joiners import BranchJoiner
 from typing import Dict, Any, Annotated, Callable, Tuple
-
-from dataclasses import dataclass, field
-
-import random, re
-
-from haystack.dataclasses import ChatMessage, ChatRole
-from haystack.tools import create_tool_from_function
-from haystack.components.tools import ToolInvoker
-
-from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
-
-import ifc_pipeline, pc_pipeline, doc_pipeline
 
 import sys
 import os
@@ -20,14 +11,13 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.tools import ifc_tool, pc_tool
-from chatcore.utils.config_loader import load_llm_config
 from duckduckgo_api_haystack import DuckduckgoApiWebSearch
 from chatcore.utils.config_loader import load_llm_config
-from chatcore.pipelines.doc_pipeline import create_doc_pipeline
-from chatcore.pipelines.ifc_pipeline import create_ifc_pipeline
-from chatcore.pipelines.pc_pipeline import create_pc_pipeline
-from chatcore.tools.doc_processing import DocumentManager
+from doc_pipeline import create_doc_pipeline
+from ifc_pipeline import create_ifc_pipeline
+from pc_pipeline import create_pc_pipeline
+
+from chatcore.utils.prompts import prompt_template_doc,prompt_template_after_websearch
 
 # Websearch in the last
 
@@ -54,9 +44,6 @@ A[Query] --> B(Retriever)
 # Tools class or Agents.
 # Connections to be modified.
 
-
-
-
 def create_main_pipeline(
     llm: Any,
     doc_pipeline: Pipeline,
@@ -72,56 +59,121 @@ def create_main_pipeline(
         ifc_pipeline: Configured ifc file pipeline
         pc_pipeline:  Configured point cloud pipeline
         doc_pipeline: Configured document pipeline
+        web_search: Initialized web search component
                 
     Returns:
         Configured Pipeline instance
     """
+
+    prompt_builder_query = PromptBuilder(template=prompt_template_doc)
+    prompt_joiner  = BranchJoiner(str)
+    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)
+
+
     # Define routing conditions
-    router_conditions = [
+    query_conditions = [
         {
-            "condition": "'.ifc' in {{query}} or 'ifc' in {{query|lower}}",
+            "condition": "'ifc' in {{query|lower}}",
             "output": {"ifc_route": True},
             "output_name": "go_to_ifcpipeline",
             "output_type": str,
         },
         {
-            "condition": "any(ext in {{query}} for ext in ['.ply','.pcd']) "
-                        "or 'point cloud' in {{query|lower}}",
+            "condition": "'point cloud' in {{query|lower}}",
             "output": {"pc_route": True},
             "output_name": "go_to_pcpipeline",
             "output_type": str,
         },
         {
-            "condition": "'project' in {{query|lower}} "
-                        "or 'document' in {{query|lower}}",
+            "condition": "'ifc' not in {{query|lower}} "
+                        "and 'point cloud' not in {{query|lower}}",
             "output": {"doc_route": True},
             "output_name": "go_to_docpipeline",
             "output_type": str,
+        },       
+    ]
+
+    # Initialize the ConditionalRouter
+    query_router = ConditionalRouter(query_conditions , unsafe=True)       
+
+    reply_routes = [
+        {
+            "condition": "{{'no_answer' in replies[0]}} or {{'No function' in replies[0]}}",
+            "output": "{{query}}",
+            "output_name": "go_to_websearch",
+            "output_type": str,
         },
         {
-            "condition": "{{'no_answer' not in replies[0]}}",
+            "condition": "{{'no_answer' not in replies[0]}} and {{'No function' in replies[0]}}",
             "output": "{{replies[0]}}",
             "output_name": "answer",
             "output_type": str,
         },
     ]
 
-    # Initialize the ConditionalRouter
-    router = ConditionalRouter(router_conditions , unsafe=True)    
+    reply_router = ConditionalRouter(reply_routes)
+
+    @component
+    class IfcPipeline:
+        """
+        A component generating personal welcome message and making it upper case
+        """
+        @component.output_types(ifc_message=ChatMessage)
+        def run(self, query:str):
+            return ifc_pipeline.run({"messages": [ChatMessage.from_user(query)]})
+
+    ifc_pipe = IfcPipeline()
+
+    @component
+    class PcPipeline:
+        """
+        A component generating personal welcome message and making it upper case
+        """
+        @component.output_types(pc_message=ChatMessage)
+        def run(self, query:str) -> dict:
+            return {"pc_message":pc_pipeline.run({"messages": [ChatMessage.from_user(query)]})}
+
+    pc_pipe = PcPipeline()
+
+    @component
+    class DocPipeline:
+        """
+        A component generating personal welcome message and making it upper case
+        """
+        @component.output_types(documents=Dict)
+        def run(self, query:str) -> dict:
+            responce = doc_pipeline.run({"text_embedder": {"text": query}})
+            return {"documents":responce["retriever"]["documents"]}
+
+    doc_pipe = DocPipeline()
 
     pipeline = Pipeline()
-    pipeline.add_component("router", ConditionalRouter(router_conditions))
-    pipeline.add_component("ifc_pipe", ifc_pipeline) 
-    pipeline.add_component("pc_pipe", pc_pipeline) 
-    pipeline.add_component("doc_pipe", doc_pipeline)    
+    pipeline.add_component("query_router", query_router)
+    pipeline.add_component("ifc_pipe", ifc_pipe) 
+    pipeline.add_component("pc_pipe", pc_pipe) 
+    pipeline.add_component("doc_pipe", doc_pipe)    
+    pipeline.add_component("prompt_builder_query", prompt_builder_query)
+    pipeline.add_component("prompt_joiner", prompt_joiner)
+    pipeline.add_component("llm", llm)
+    pipeline.add_component("reply_router", reply_router)
+    pipeline.add_component("web_search", web_search)
+    pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
 
     # Connect components based on routing
     # Prompt missing
-    pipeline.connect("router.go_to_ifcpipeline", "ifc_pipeline.query") 
-    pipeline.connect("router.go_to_pcpipeline", "pc_pipeline.query") 
-    pipeline.connect("router.go_to_docpipeline", "doc_pipeline.query")
-    # Answers through the ifc or seg tools should be finalize with llm
+    pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.query") 
+    pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
+    pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
+    pipeline.connect("doc_pipe.documents", "prompt_builder_query.documents")
+    pipeline.connect("prompt_builder_query", "prompt_joiner")
+    pipeline.connect("prompt_joiner", "llm")
 
+    pipeline.connect("llm.replies", "reply_router.replies")
+    pipeline.connect("reply_router.go_to_websearch", "web_search.query")
+    pipeline.connect("reply_router.go_to_websearch", "prompt_builder_after_websearch.query")
+    pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
+    pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")    
+    
     return pipeline
 
 if __name__ == "__main__":
@@ -132,7 +184,6 @@ if __name__ == "__main__":
         sys.path.insert(0, repo_root)
 
     from chatcore.tools.doc_processing import DocumentManager
-
     from chatcore.utils.config_loader import load_llm_config
     from duckduckgo_api_haystack import DuckduckgoApiWebSearch
     from haystack.components.generators import HuggingFaceLocalGenerator
@@ -153,20 +204,36 @@ if __name__ == "__main__":
     doc_store = DocumentManager("docs/")
     precessed_docs= doc_store.process_documents()
 
-    doc_pipe = create_doc_pipeline(
-        precessed_docs,
-        llm,
-        web_search=DuckduckgoApiWebSearch(top_k=5)
+    doc_pipeline = create_doc_pipeline(
+        precessed_docs,        
         )
+    
+    import json
+    # Example user message
+    with open("config/config.json", "r") as f:
+        config = json.load(f)
+    
+    ifc_file_path = config["ifc_file_path"]
+    ifc_pipeline = create_ifc_pipeline(ifc_file_path)
+    pc_pipeline = create_pc_pipeline()   
 
+    
     main_pipe = create_main_pipeline(
         llm=llm,
-        doc_pipeline=doc_pipe
+        doc_pipeline=doc_pipeline,
+        ifc_pipeline=ifc_pipeline,
+        pc_pipeline=pc_pipeline,
+        web_search=DuckduckgoApiWebSearch(top_k=5)
     )
 
     # Visualizing the pipeline 
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
-    query = "Where is the project smartLab?"
-    result = doc_pipe.run(query)
+
+    
+    #query = "Where is the project smartLab?"
+    query = "Where is the project Helsinki?"
+    result = main_pipe.run(query)
 
     print(result)
+
+   

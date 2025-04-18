@@ -22,8 +22,8 @@ Figure out how to deal with normal questions besides the two routes
 
 def create_doc_pipeline(
     document_store: Any,
-    llm: Any,
-    web_search: Any
+    #llm: Any,
+    #web_search: Any
     ) -> Pipeline:
     """
     Creates and configures the document processing pipeline
@@ -100,23 +100,24 @@ def create_doc_pipeline(
     # Add components
     pipeline.add_component("text_embedder", text_embedder)
     pipeline.add_component("retriever", retriever)
-    pipeline.add_component("prompt_builder", prompt_builder)
-    pipeline.add_component("prompt_joiner", prompt_joiner)
-    pipeline.add_component("llm", llm)
-    pipeline.add_component("router", router)
-    pipeline.add_component("web_search", web_search)
-    pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
+    #pipeline.add_component("prompt_builder", prompt_builder)
+    #pipeline.add_component("prompt_joiner", prompt_joiner)
+    #pipeline.add_component("llm", llm)
+
+    #pipeline.add_component("router", router)
+    #pipeline.add_component("web_search", web_search)
+    #pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
 
     # Connect components
     pipeline.connect("text_embedder", "retriever")
-    pipeline.connect("retriever", "prompt_builder.documents")
-    pipeline.connect("prompt_builder", "prompt_joiner")
-    pipeline.connect("prompt_joiner", "llm")
-    pipeline.connect("llm.replies", "router.replies")
-    pipeline.connect("router.go_to_websearch", "web_search.query")
-    pipeline.connect("router.go_to_websearch", "prompt_builder_after_websearch.query")
-    pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
-    pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")
+    #pipeline.connect("retriever", "prompt_builder.documents")
+    #pipeline.connect("prompt_builder", "prompt_joiner")
+    #pipeline.connect("prompt_joiner", "llm")
+    #pipeline.connect("llm.replies", "router.replies")
+    #pipeline.connect("router.go_to_websearch", "web_search.query")
+    #pipeline.connect("router.go_to_websearch", "prompt_builder_after_websearch.query")
+    #pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
+    #pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")
 
     return pipeline
 
@@ -124,6 +125,7 @@ if __name__ == "__main__":
     from chatcore.utils.config_loader import load_llm_config
     from duckduckgo_api_haystack import DuckduckgoApiWebSearch
     
+    '''
     llm_config = load_llm_config()
     
     llm = HuggingFaceLocalGenerator(
@@ -137,26 +139,21 @@ if __name__ == "__main__":
     )
 
     llm.warm_up()
+    '''
 
     doc_store = DocumentManager("docs/")
     precessed_docs= doc_store.process_documents()
 
     doc_pipe = create_doc_pipeline(
         precessed_docs,
-        llm,
-        web_search=DuckduckgoApiWebSearch(top_k=5)
+        #llm,
+        #web_search=DuckduckgoApiWebSearch(top_k=5)
         )
     
     # Visualizing the pipeline 
-    # doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
-
-    def get_answer(query):
-        result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
-        print(result["router"]["answer"])
+    #doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
     
-    query = "Where is smartLab?"
+    query = "Where is Helsinki?"
 
-    #get_answer(query)
-
-    result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+    result = doc_pipe.run({"text_embedder": {"text": query}}) #, "prompt_builder": {"query": query}#, "router": {"query": query}
     print(result)

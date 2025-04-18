@@ -159,9 +159,13 @@ if __name__ == '__main__':
     #print(result)
 
     # Test tool calling
-    #query = "What are the main ifcentities in the ifc file?"
-    
-    query = "How many IfcWindow are there in the ifc file?"
+    #query = "What are the main ifcentities in the ifc file?"    
+    #query = "How many IfcWindow are there in the ifc file?"
+    query = "What is the IFC schema of the file?"
+    print(query_similarity(ifc_tool_reference["ifc_entity_tool"], query))
+    print(query_similarity(ifc_tool_reference["ifc_query_tool"], query))      
+    print(query_similarity("the ifc file", query))                      
+                
 
     user_message = ChatMessage.from_user(query)
     ifc_file_path= "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Courses/CRBE/IFC/BIM4EEB-TUD-2x3.ifc"

@@ -33,4 +33,37 @@ def verify_cot_prompt_template(response):
     - Balanced perspective
     - Clear conclusion
     """
+prompt_template_doc = """
+    <|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+    Answer the following query given the documents.
+    If the answer is not contained within the documents reply with 'no_answer'.
+    If the answer is contained within the documents, start the answer with "FROM THE KNOWLEDGE BASE: ".
+
+    Documents:
+    {% for document in documents %}
+    {{document.content}}
+    {% endfor %}
+
+    Query: {{query}}<|eot_id|>
+
+    <|start_header_id|>assistant<|end_header_id|>
+    """
+
+
+prompt_template_after_websearch = """
+    <|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+    Answer the following query given the documents retrieved from the web.
+    Start the answer with "FROM THE WEB: ".
+
+    Documents:
+    {% for document in documents %}
+    {{document.content}}
+    {% endfor %}
+
+    Query: {{query}}<|eot_id|>
+
+    <|start_header_id|>assistant<|end_header_id|>
+    """
 
