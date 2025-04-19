@@ -14,7 +14,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.pc_tool import pc_visual_tool, PcToolCallAssistant
-from chatcore.pipelines.ifc_pipeline import NoFunctionCall,PipeOutMessage
+from chatcore.pipelines.ifc_pipeline import NoFunctionCall,PipeOutMessage,QueryToMessage
 
 def create_pc_pipeline(
     #pc_file: Any,
@@ -54,6 +54,7 @@ def create_pc_pipeline(
     router = ConditionalRouter(routes, unsafe=True)
 
     # Initialize the ToolInvoker with the weather tool
+    query_to_message = QueryToMessage()
     pc_tool_checker = PcToolCallAssistant()
     tool_invoker = ToolInvoker(tools=[pc_visual_tool])
     no_call_helper = NoFunctionCall()
@@ -61,7 +62,7 @@ def create_pc_pipeline(
 
     # Create the pipeline
     pipeline = Pipeline()
-    #pipeline.add_component("generator", llm_chat)
+    pipeline.add_component("query_to_message", query_to_message)
     pipeline.add_component("router", router)
     pipeline.add_component("tool_checker", pc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
@@ -69,14 +70,11 @@ def create_pc_pipeline(
     pipeline.add_component("pc_out_message", pc_out_message)
 
     # Connect components
-    #pipeline.connect("generator.replies", "router")
+    pipeline.connect("query_to_message.message", "router")
     pipeline.connect("router.pc_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
     pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
     pipeline.connect("tool_invoker.tool_messages", "pc_out_message.messages") 
-
-    # Critical connection: Feed tool results back to generator
-    #pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line
 
     return pipeline
 
@@ -84,11 +82,11 @@ def create_pc_pipeline(
 if __name__ == "__main__":
     # Example user message
     pc_pipe = create_pc_pipeline()    
-    #user_message = ChatMessage.from_user("Visualize the point cloud")
-    user_message = ChatMessage.from_user("Where is Finland?")
+    query = "Visualize the point cloud"
+    #query = "Where is Finland?"
     #user_message = ChatMessage.from_user("How many points are there in the point cloud?")
     # Run the pipeline
-    result = pc_pipe.run({"messages": [user_message]})
+    result = pc_pipe.run({"query": query})
     print(result)
     
 

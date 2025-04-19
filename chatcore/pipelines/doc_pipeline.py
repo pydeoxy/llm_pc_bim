@@ -155,5 +155,5 @@ if __name__ == "__main__":
     
     query = "Where is Helsinki?"
 
-    result = doc_pipe.run({"text_embedder": {"text": query}}, {"prompt_builder": {"query": query}}, {"router": {"query": query}})
+    result = doc_pipe.run({"text_embedder": {"text": query}}, {"prompt_builder": {"query": query}})#, {"router": {"query": query}})
     print(result)

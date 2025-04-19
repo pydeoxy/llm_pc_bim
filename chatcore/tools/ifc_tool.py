@@ -112,22 +112,20 @@ paths = load_path_config()
 
 @component
 class IfcToolCallAssistant:
-    def __init__(self, ifc_file_path: str):
-        self.ifc_file_path = ifc_file_path
-
+    
     @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
         tool = tool_locate(message.text,ifc_tool_reference)
         if tool == "ifc_entity_tool":
             ifc_entity_tool_call = ToolCall(
                 tool_name="ifc_entity_tool",
-                arguments={"ifc_file_path": self.ifc_file_path}
+                arguments={"ifc_file_path": paths["ifc_file_path"]}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_entity_tool_call])]}
         elif tool == "ifc_query_tool":
             ifc_query_tool_call = ToolCall(
                 tool_name="ifc_query_tool",
-                arguments={"ifc_file_path": self.ifc_file_path,
+                arguments={"ifc_file_path": paths["ifc_file_path"],
                            "entity_name": extract_ifc_entity_name(message.text)}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_query_tool_call])]}

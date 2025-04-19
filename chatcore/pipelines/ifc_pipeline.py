@@ -15,20 +15,12 @@ if repo_root not in sys.path:
 
 from chatcore.tools.ifc_tool import ifc_entity_tool, ifc_query_tool, IfcToolCallAssistant
 
+@component
+class QueryToMessage:
 
-# Initialize the ChatGenerator
-# Chat LLM    
-'''
-llm_chat = HuggingFaceLocalChatGenerator(
-        model="meta-llama/Llama-3.2-3B-Instruct", #llm_config["model_name"],
-        huggingface_pipeline_kwargs={
-            "device_map": "auto",
-            "torch_dtype": "float16"
-        }
-    )
-'''    
-
-#llm_chat.warm_up()
+    @component.output_types(message=ChatMessage)
+    def run(self, query: str) -> dict:
+        return {"message":[ChatMessage.from_user(query)]}
 
 @component
 class NoFunctionCall:
@@ -45,7 +37,7 @@ class PipeOutMessage:
         return {"pipe_message":messages}
 
 def create_ifc_pipeline(
-    ifc_file_path: str,
+    #ifc_file_path: str,
     #llm: Any,
     #web_search: Any
     ) -> Pipeline:
@@ -82,14 +74,15 @@ def create_ifc_pipeline(
     router = ConditionalRouter(routes, unsafe=True)
 
     # Initialize the ToolInvoker with the ifc tools
-    ifc_tool_checker = IfcToolCallAssistant(ifc_file_path)
+    query_to_message = QueryToMessage()
+    ifc_tool_checker = IfcToolCallAssistant()
     tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool])
     no_call_helper = NoFunctionCall()
     ifc_out_message = PipeOutMessage()
 
     # Create the pipeline
     pipeline = Pipeline()
-    #pipeline.add_component("generator", llm_chat)
+    pipeline.add_component("query_to_message", query_to_message)
     pipeline.add_component("router", router)
     pipeline.add_component("tool_checker", ifc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
@@ -97,14 +90,11 @@ def create_ifc_pipeline(
     pipeline.add_component("ifc_out_message", ifc_out_message)
 
     # Connect components
-    #pipeline.connect("generator.replies", "router")
+    pipeline.connect("query_to_message.message", "router")
     pipeline.connect("router.ifc_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
     pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
     pipeline.connect("tool_invoker.tool_messages", "ifc_out_message.messages") 
-
-    # Critical connection: Feed tool results back to generator
-    #pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line
 
     return pipeline
 
@@ -112,20 +102,17 @@ def create_ifc_pipeline(
 if __name__ == "__main__":
     import json
     # Example user message
-    with open("config.json", "r") as f:
-        config = json.load(f)
     
-    ifc_file_path = config["ifc_file_path"]
-    ifc_pipe = create_ifc_pipeline(ifc_file_path)
+    ifc_pipe = create_ifc_pipeline()
 
     # Visualizing the pipeline 
     #ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
 
     #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
-    user_message = ChatMessage.from_user("How many IfcWindow are there in the IFC file?")
+    query= "How many IfcWindow are there in the IFC file?"
     #user_message = ChatMessage.from_user("Where is SmartLab?")
     # Run the pipeline
-    result = ifc_pipe.run({"messages": [user_message]})
+    result = ifc_pipe.run({"query": query})
 
     print(result)
     # Contents of tool calling

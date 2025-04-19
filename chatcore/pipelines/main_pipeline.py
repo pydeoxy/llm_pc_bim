@@ -217,7 +217,8 @@ if __name__ == "__main__":
     precessed_docs= doc_store.process_documents()
 
     doc_pipeline = create_doc_pipeline(
-        precessed_docs,        
+        precessed_docs,    
+        llm,    
         )
     
     import json
@@ -244,8 +245,8 @@ if __name__ == "__main__":
     
     #query = "Where is the project smartLab?"
     #query = "Where is the project Helsinki?"
-    query = "How many IfcWindow are there in the IFC file?"
     #query = "How many IfcWindow are there in the IFC file?"
+    query = "Visualize the point cloud."
     
     user_message = ChatMessage.from_user(query)
 
