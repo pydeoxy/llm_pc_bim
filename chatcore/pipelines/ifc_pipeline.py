@@ -33,9 +33,16 @@ llm_chat = HuggingFaceLocalChatGenerator(
 @component
 class NoFunctionCall:
 
-    @component.output_types(no_call_message=ChatMessage)
+    @component.output_types(pipe_message=ChatMessage)
     def run(self, message: ChatMessage) -> dict:
-        return {"no_call_message":[ChatMessage.from_assistant("No function calling founded.")]}
+        return {"pipe_message":[ChatMessage.from_assistant("No function calling founded.")]}
+    
+@component
+class PipeOutMessage:
+
+    @component.output_types(pipe_message=ChatMessage)
+    def run(self, messages: List[ChatMessage]) -> dict:
+        return {"pipe_message":messages}
 
 def create_ifc_pipeline(
     ifc_file_path: str,
@@ -78,6 +85,7 @@ def create_ifc_pipeline(
     ifc_tool_checker = IfcToolCallAssistant(ifc_file_path)
     tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool])
     no_call_helper = NoFunctionCall()
+    ifc_out_message = PipeOutMessage()
 
     # Create the pipeline
     pipeline = Pipeline()
@@ -86,12 +94,14 @@ def create_ifc_pipeline(
     pipeline.add_component("tool_checker", ifc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
     pipeline.add_component("no_call_helper", no_call_helper)
+    pipeline.add_component("ifc_out_message", ifc_out_message)
 
     # Connect components
     #pipeline.connect("generator.replies", "router")
     pipeline.connect("router.ifc_tool_calls", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
     pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
+    pipeline.connect("tool_invoker.tool_messages", "ifc_out_message.messages") 
 
     # Critical connection: Feed tool results back to generator
     #pipeline.connect("tool_invoker.tool_messages", "generator")  # Add this line
@@ -109,10 +119,11 @@ if __name__ == "__main__":
     ifc_pipe = create_ifc_pipeline(ifc_file_path)
 
     # Visualizing the pipeline 
-    ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
+    #ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
 
     #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
     user_message = ChatMessage.from_user("How many IfcWindow are there in the IFC file?")
+    #user_message = ChatMessage.from_user("Where is SmartLab?")
     # Run the pipeline
     result = ifc_pipe.run({"messages": [user_message]})
 
