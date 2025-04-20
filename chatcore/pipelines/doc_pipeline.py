@@ -123,8 +123,7 @@ def create_doc_pipeline(
 
 if __name__ == "__main__":
     from chatcore.utils.config_loader import load_llm_config
-    from duckduckgo_api_haystack import DuckduckgoApiWebSearch
-    
+    from duckduckgo_api_haystack import DuckduckgoApiWebSearch    
     
     llm_config = load_llm_config()
     

@@ -3,7 +3,7 @@ from haystack.dataclasses import ChatMessage, Document
 from haystack.components.routers import ConditionalRouter
 from haystack.components.builders import PromptBuilder
 from haystack.components.joiners import BranchJoiner
-from typing import List,Dict, Any, Annotated, Callable, Tuple
+from typing import List, Dict, Any
 
 import sys
 import os
@@ -71,26 +71,26 @@ def create_main_pipeline(
 
 
     # Define routing conditions
-    query_conditions = [
+    query_conditions = [         
         {
-            "condition": "'ifc' not in messages[0].text.lower()"
-                        "and 'point cloud' not in messages[0].text.lower()",
-            "output": "{{messages[0].text}}",
-            "output_name": "go_to_docpipeline",
-            "output_type": str,
-        }, 
-        {
-            "condition": "'ifc' in messages[0].text.lower()", 
-            "output": "{{messages[0]}}",
+            "condition": "{{'ifc' in query|lower}}", 
+            "output": "{{query}}",
             "output_name": "go_to_ifcpipeline",
-            "output_type": ChatMessage,
+            "output_type": str,
         },
         {
-            "condition": "'point cloud' in messages[0].text.lower()",
-            "output": "{{messages[0]}}",
+            "condition": "{{'point cloud' in query|lower}}",
+            "output": "{{query}}",
             "output_name": "go_to_pcpipeline",
-            "output_type": ChatMessage,
-        },              
+            "output_type": str,
+        },     
+        {
+            "condition": "{{'ifc' not in query|lower}}"
+                        "and {{'point cloud' not in query|lower}}",
+            "output": "{{query}}",
+            "output_name": "go_to_docpipeline",
+            "output_type": str,
+        },         
     ]
 
     # Initialize the ConditionalRouter
@@ -131,8 +131,8 @@ def create_main_pipeline(
         A component generating personal welcome message and making it upper case
         """
         @component.output_types(pipe_message=ChatMessage)
-        def run(self, message:ChatMessage):
-            return  {"pipe_message":ifc_pipeline.run({"messages": [message]})}
+        def run(self, query:str):
+            return  {"pipe_message":ifc_pipeline.run({"query": query})}
 
     ifc_pipe = IfcPipeline()
 
@@ -142,8 +142,8 @@ def create_main_pipeline(
         A component generating personal welcome message and making it upper case
         """
         @component.output_types(pipe_message=ChatMessage)
-        def run(self, message:ChatMessage) -> dict:
-            return {"pipe_message":pc_pipeline.run({"messages": [message]})}
+        def run(self, query:str) -> dict:
+            return {"pipe_message":pc_pipeline.run({"query": query})}
 
     pc_pipe = PcPipeline()
 
@@ -173,8 +173,8 @@ def create_main_pipeline(
 
     # Connect components based on routing
     # Prompt missing
-    pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.message") 
-    pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.message") 
+    pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.query") 
+    pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
     pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
     #pipeline.connect("doc_pipe.documents", "prompt_builder_query.documents")
     #pipeline.connect("prompt_builder_query", "prompt_joiner")
@@ -221,13 +221,7 @@ if __name__ == "__main__":
         llm,    
         )
     
-    import json
-    # Example user message
-    with open("config/config.json", "r") as f:
-        config = json.load(f)
-    
-    ifc_file_path = config["ifc_file_path"]
-    ifc_pipeline = create_ifc_pipeline(ifc_file_path)
+    ifc_pipeline = create_ifc_pipeline()
     pc_pipeline = create_pc_pipeline()   
 
     
@@ -241,19 +235,14 @@ if __name__ == "__main__":
 
     # Visualizing the pipeline 
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
-
     
-    #query = "Where is the project smartLab?"
+    query = "Where is the project smartLab?"
     #query = "Where is the project Helsinki?"
     #query = "How many IfcWindow are there in the IFC file?"
-    query = "Visualize the point cloud."
+    #query = "Visualize the point cloud."
     
-    user_message = ChatMessage.from_user(query)
-
-    #print(user_message.text)
-    #print('ifc' in user_message.text.lower())
     # Run the pipeline
-    result = main_pipe.run({"messages": [user_message]})
+    result = main_pipe.run({"query": query})
 
     print(result)
 

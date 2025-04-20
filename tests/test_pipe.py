@@ -40,21 +40,21 @@ def create_pipeline(
     # Define routing conditions
     query_conditions = [
         {
-            "condition": "'ifc' in messages[0].text.lower()",
-            "output": "{{messages}}",
+            "condition": "{{'ifc' in query|lower}}",
+            "output": "{{query}}",
             "output_name": "go_to_ifcpipeline",
             "output_type": str,
         },
         {
-            "condition": "'point cloud' in messages[0].text.lower()",
-            "output": "{{messages}}",
+            "condition": "{{'point cloud' in query|lower}}",
+            "output": "{{query}}",
             "output_name": "go_to_pcpipeline",
             "output_type": str,
         },
         {
-            "condition": "'project' in messages[0].text.lower()"
-                        "or 'document' in messages[0].text.lower()",
-            "output": "{{messages[0].text}}",
+            "condition": "{{'project' in query|lower}}"
+                        "or {{'document' in query|lower}}",
+            "output": "{{query}}",
             "output_name": "go_to_docpipeline",
             "output_type": str,
         },       
@@ -142,7 +142,8 @@ if __name__ == "__main__":
     precessed_docs= doc_store.process_documents()
 
     doc_pipeline = create_doc_pipeline(
-        precessed_docs,        
+        precessed_docs,   
+        llm     
         )
     
     test_pipe = create_pipeline(
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     
     user_message = ChatMessage.from_user(query)
     # Run the pipeline
-    result = test_pipe.run({"messages": [user_message]})
+    result = test_pipe.run({"query": query})
     #print(user_message.text.lower())
 
     print(result)

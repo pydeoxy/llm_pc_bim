@@ -3,8 +3,6 @@ from haystack.components.tools import ToolInvoker
 from haystack.components.routers import ConditionalRouter
 from haystack import Pipeline
 from typing import List, Any
-from haystack.components.generators import HuggingFaceLocalGenerator
-from haystack.components.generators.chat import HuggingFaceLocalChatGenerator
 from haystack import component
 
 import sys
