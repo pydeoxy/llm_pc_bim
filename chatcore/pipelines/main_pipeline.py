@@ -156,6 +156,8 @@ def create_main_pipeline(
         def run(self, query:str) -> dict:
             responce = doc_pipeline.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
             return {"answer":responce["router"]["answer"]}
+        
+    message_joiner = BranchJoiner(ChatMessage)
 
     doc_pipe = DocPipeline()
 
@@ -164,9 +166,10 @@ def create_main_pipeline(
     pipeline.add_component("ifc_pipe", ifc_pipe) 
     pipeline.add_component("pc_pipe", pc_pipe) 
     pipeline.add_component("doc_pipe", doc_pipe)    
+    pipeline.add_component("message_joiner", message_joiner)
     #pipeline.add_component("prompt_builder_query", prompt_builder_query)
     #pipeline.add_component("prompt_joiner", prompt_joiner)
-    #pipeline.add_component("llm", llm)
+    pipeline.add_component("llm", llm)
     #pipeline.add_component("reply_router", reply_router)
     #pipeline.add_component("web_search", web_search)
     #pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
@@ -176,7 +179,9 @@ def create_main_pipeline(
     pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.query") 
     pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
     pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
-    #pipeline.connect("doc_pipe.documents", "prompt_builder_query.documents")
+    pipeline.connect("ifc_pipe.pipe_message", "message_joiner") 
+    pipeline.connect("pc_pipe.pipe_message", "message_joiner") 
+    pipeline.connect("message_joiner", "llm")
     #pipeline.connect("prompt_builder_query", "prompt_joiner")
     #pipeline.connect("prompt_joiner", "llm")
 
@@ -224,7 +229,6 @@ if __name__ == "__main__":
     
     ifc_pipeline = create_ifc_pipeline()
     pc_pipeline = create_pc_pipeline()   
-
     
     main_pipe = create_main_pipeline(
         llm=llm,
@@ -235,7 +239,8 @@ if __name__ == "__main__":
     )
 
     # Visualizing the pipeline 
-    #main_pipe.draw(path="docs/main_pipeline_diagram.png")
+    main_pipe.draw(path="docs/main_pipeline_diagram.png")
+
     
     #query = "Where is the project smartLab?"
     #query = "Where is the Helsinki?"
@@ -247,5 +252,6 @@ if __name__ == "__main__":
     result = main_pipe.run({"query": query})
 
     print(result)
+    #print(result['message_joiner']["value"]['pipe_message'].text)
 
    

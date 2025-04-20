@@ -51,7 +51,8 @@ def get_main_ifc_entities(ifc_file_path: str):
       for entity in ifc_file.by_type(entity_type):
         main_entities[entity_type].append(entity.GlobalId)
 
-    return main_entities
+    return  f"""FROM FUNCTION CALL:
+             {main_entities}"""
 
 ifc_entity_tool = Tool(name="ifc_entity_tool",
             description="A tool to extracts main IFC entities and their GUIDs from an IFC file.",
@@ -75,11 +76,11 @@ def query_ifc_entity(ifc_file_path: str, entity_name: str):
     try:
         ifc_file = ifcopenshell.open(ifc_file_path)
         entity_count = ifc_file.by_type(entity_name)  # Directly get entities of specified type.
-        return {"Result":f"{len(entity_count)} {entity_name} instances found in the IFC file."}
+        return f"FROM FUNCTION CALL: {len(entity_count)} {entity_name} instances found in the IFC file."
     except IOError:
-        return {"Error": f"Could not open file at {ifc_file_path}"}        
+        return f"Error: Could not open file at {ifc_file_path}"        
     except Exception as e:
-        return {"Error": f"{e}"}
+        return f"Error: {e}"
 
 ifc_query_tool = Tool(name="ifc_query_tool",
             description="A tool to check how many IfcEntity by its name in the IFC file.",
@@ -101,7 +102,7 @@ def no_call(query: str):
         str: No functions founded.
     """ 
     #file_name = os.path.basename(ifc_file_path)      
-    return f"No functions founded for query: '{query}'."
+    return f"No functions found for query: '{query}'."
 
 no_call_tool = Tool(name="no_call_tool",
             description="A tool to skip function calling for queries not related to functions.",
@@ -153,7 +154,7 @@ class IfcToolCallAssistant:
         elif tool == "no_call":
             no_call_tool_call = ToolCall(
                 tool_name="no_call_tool",
-                arguments={"query": query}
+                arguments={"query": message.text}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[no_call_tool_call])]}
         else:

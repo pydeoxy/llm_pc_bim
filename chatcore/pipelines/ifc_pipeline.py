@@ -11,28 +11,28 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.tools.ifc_tool import ifc_entity_tool, ifc_query_tool, IfcToolCallAssistant
+from chatcore.tools.ifc_tool import ifc_entity_tool, ifc_query_tool,no_call_tool, IfcToolCallAssistant
 
 @component
 class QueryToMessage:
 
     @component.output_types(message=ChatMessage)
     def run(self, query: str) -> dict:
-        return {"message":[ChatMessage.from_user(query)]}
+        return {"message":ChatMessage.from_user(query)}
 
 @component
 class NoFunctionCall:
 
-    @component.output_types(pipe_message=ChatMessage)
+    @component.output_types(no_call_answer=str)
     def run(self, message: ChatMessage) -> dict:
-        return {"pipe_message":[ChatMessage.from_assistant("No function calling founded.")]}
+        return {"no_call_answer":"No function calling found."}
     
 @component
-class PipeOutMessage:
+class ToolResult:
 
-    @component.output_types(pipe_message=ChatMessage)
+    @component.output_types(tool_result=str)
     def run(self, messages: List[ChatMessage]) -> dict:
-        return {"pipe_message":messages}
+        return {"tool_result":messages[0].tool_call_result.result}
 
 def create_ifc_pipeline(
     #ifc_file_path: str,
@@ -51,7 +51,7 @@ def create_ifc_pipeline(
         Configured Pipeline instance
     """
 
-
+    '''
     # Define routing conditions
     routes = [
         {
@@ -70,29 +70,29 @@ def create_ifc_pipeline(
 
     # Initialize the ConditionalRouter
     router = ConditionalRouter(routes, unsafe=True)
+    '''
 
     # Initialize the ToolInvoker with the ifc tools
     query_to_message = QueryToMessage()
     ifc_tool_checker = IfcToolCallAssistant()
-    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool])
-    no_call_helper = NoFunctionCall()
-    ifc_out_message = PipeOutMessage()
+    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool,no_call_tool])
+    #no_call_helper = NoFunctionCall()
+    tool_result = ToolResult()
 
     # Create the pipeline
     pipeline = Pipeline()
     pipeline.add_component("query_to_message", query_to_message)
-    pipeline.add_component("router", router)
+    #pipeline.add_component("router", router)
     pipeline.add_component("tool_checker", ifc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
-    pipeline.add_component("no_call_helper", no_call_helper)
-    pipeline.add_component("ifc_out_message", ifc_out_message)
+    #pipeline.add_component("no_call_helper", no_call_helper)
+    pipeline.add_component("tool_result", tool_result)
 
     # Connect components
-    pipeline.connect("query_to_message.message", "router")
-    pipeline.connect("router.ifc_tool_calls", "tool_checker.message")  
+    pipeline.connect("query_to_message.message", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
-    pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
-    pipeline.connect("tool_invoker.tool_messages", "ifc_out_message.messages") 
+    #pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
+    pipeline.connect("tool_invoker.tool_messages", "tool_result.messages") 
 
     return pipeline
 
@@ -107,8 +107,9 @@ if __name__ == "__main__":
     #ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
 
     #user_message = ChatMessage.from_user("What are the main ifcentities in the ifc file?")
-    query= "How many IfcWindow are there in the IFC file?"
-    #user_message = ChatMessage.from_user("Where is SmartLab?")
+    #query= "How many IfcWindow are there in the IFC file?"
+    query= "What is IFC?"
+    #query = "Where is SmartLab?"
     # Run the pipeline
     result = ifc_pipe.run({"query": query})
 

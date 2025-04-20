@@ -12,7 +12,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.pc_tool import pc_visual_tool, no_call_tool,PcToolCallAssistant
-from chatcore.pipelines.ifc_pipeline import NoFunctionCall,PipeOutMessage,QueryToMessage
+from chatcore.pipelines.ifc_pipeline import NoFunctionCall,ToolResult,QueryToMessage
 
 def create_pc_pipeline(
     #pc_file: Any,

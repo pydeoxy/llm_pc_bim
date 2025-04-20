@@ -151,7 +151,7 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
     
-    query = "Where is Helsinki?"
+    query = "What is the capital of Finland?"
 
     result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
     print(result)
