@@ -102,7 +102,7 @@ def no_call(query: str):
         str: No functions founded.
     """ 
     #file_name = os.path.basename(ifc_file_path)      
-    return f"No functions found for query: '{query}'."
+    return f"no_answer: No functions found for query - '{query}'."
 
 no_call_tool = Tool(name="no_call_tool",
             description="A tool to skip function calling for queries not related to functions.",
@@ -158,7 +158,7 @@ class IfcToolCallAssistant:
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[no_call_tool_call])]}
         else:
-            return {"helper_messages":[ChatMessage.from_assistant("No function calling founded.")]}
+            return {"helper_messages":[ChatMessage.from_assistant("No function calling found.")]}
 
 
 if __name__ == '__main__':   

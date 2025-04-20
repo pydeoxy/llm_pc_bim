@@ -60,6 +60,7 @@ def create_main_pipeline(
     llm: Any,
     doc_pipeline: Pipeline,
     ifc_pipeline: Pipeline,
+    pc_pipeline: Pipeline,
     web_search: Any
 ) -> Pipeline:
     """
@@ -124,6 +125,23 @@ def create_main_pipeline(
     ]
 
     pipeout_router = ConditionalRouter(pipeout_routes)
+
+    reply_routes = [
+        {
+            "condition": "{{'no_answer' in replies[0]}}",
+            "output": "{{query}}",
+            "output_name": "go_to_websearch",
+            "output_type": str,
+        },
+        {
+            "condition": "{{'no_answer' not in replies[0]}}",
+            "output": "{{replies[0]}}",
+            "output_name": "answer",
+            "output_type": str,
+        },
+    ]
+
+    reply_router = ConditionalRouter(reply_routes)
     
     @component
     class IfcPipeline:
@@ -137,6 +155,17 @@ def create_main_pipeline(
     ifc_pipe = IfcPipeline()
 
     @component
+    class PcPipeline:
+        """
+        A component generating personal welcome message and making it upper case
+        """
+        @component.output_types(pipe_message=ChatMessage)
+        def run(self, query:str) -> dict:
+            return {"pipe_message":pc_pipeline.run({"query": query})}
+
+    pc_pipe = PcPipeline()
+
+    @component
     class DocPipeline:
         """
         A component generating personal welcome message and making it upper case
@@ -145,9 +174,9 @@ def create_main_pipeline(
         def run(self, query:str) -> dict:
             responce = doc_pipeline.run({"text_embedder": {"text": query}})
             return {"documents":responce["retriever"]["documents"]}        
-  
-        
-    message_joiner = BranchJoiner(ChatMessage)
+         
+    
+    pipeout_joiner = BranchJoiner(ChatMessage)
 
     doc_pipe = DocPipeline()
 
@@ -155,7 +184,9 @@ def create_main_pipeline(
     pipeline.add_component("query_router", query_router)
     pipeline.add_component("doc_pipe", doc_pipe)   
     pipeline.add_component("ifc_pipe", ifc_pipe)   
-     
+    pipeline.add_component("pc_pipe", pc_pipe)  
+    pipeline.add_component("pipeout_joiner", pipeout_joiner)  
+    pipeline.add_component("reply_router", reply_router) 
     #pipeline.add_component("message_joiner", message_joiner)
     pipeline.add_component("prompt_builder_query", prompt_builder_query)
     pipeline.add_component("prompt_joiner", prompt_joiner)
@@ -165,18 +196,23 @@ def create_main_pipeline(
     #pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
 
     # Connect components based on routing
-    # Prompt missing
-    pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
+    # Prompt missing    
+    pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
     pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.query") 
+    pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
     pipeline.connect("doc_pipe.documents", "prompt_builder_query.documents")
     pipeline.connect("prompt_builder_query", "prompt_joiner")
     pipeline.connect("prompt_joiner", "llm")
-    pipeline.connect("ifc_pipe.pipe_message", "pipeout_router")
+    pipeline.connect("llm.replies", "reply_router.replies")    
+    pipeline.connect("ifc_pipe.pipe_message", "pipeout_joiner")
+    pipeline.connect("pc_pipe.pipe_message", "pipeout_joiner")
+    pipeline.connect("pipeout_joiner", "pipeout_router")
+    
 
     
     #pipeline.connect("prompt_joiner", "llm")
 
-    #pipeline.connect("llm.replies", "reply_router.replies")
+    
     #pipeline.connect("reply_router.go_to_websearch", "web_search.query")
     #pipeline.connect("reply_router.go_to_websearch", "prompt_builder_after_websearch.query")
     #pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
@@ -218,11 +254,13 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
     ifc_pipe = create_ifc_pipeline()
+    pc_pipe = create_pc_pipeline()
 
     main_pipe = create_main_pipeline(
         llm=llm,
         doc_pipeline=doc_pipe,
         ifc_pipeline=ifc_pipe,
+        pc_pipeline=pc_pipe,
         web_search=DuckduckgoApiWebSearch(top_k=5)
     )
     
@@ -230,6 +268,7 @@ if __name__ == "__main__":
     #query = "What is the project SmartLab?"
     #query= "How many IfcWindow are there in the IFC file?"
     query= "What is IFC?"
+    #query="How many points are there in the point cloud?"
 
     result = main_pipe.run({"query": query})
     print(result)

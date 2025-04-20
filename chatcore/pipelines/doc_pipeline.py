@@ -14,6 +14,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.doc_processing import DocumentManager
+from chatcore.utils.prompts import prompt_template_doc
 
 '''
 Figure out how to deal with normal questions besides the two routes
@@ -36,25 +37,8 @@ def create_doc_pipeline(
     Returns:
         Configured Pipeline instance
     """
-    # Prompt template for document-based queries
-    prompt_template = """
-    <|begin_of_text|><|start_header_id|>user<|end_header_id|>
 
-    Answer the following query given the documents.
-    If the answer is not contained within the documents reply with 'no_answer'.
-    If the answer is contained within the documents, start the answer with "FROM THE KNOWLEDGE BASE: ".
-
-    Documents:
-    {% for document in documents %}
-    {{document.content}}
-    {% endfor %}
-
-    Query: {{query}}<|eot_id|>
-
-    <|start_header_id|>assistant<|end_header_id|>
-    """
-
-    prompt_builder = PromptBuilder(template=prompt_template)
+    prompt_builder = PromptBuilder(template=prompt_template_doc)
 
     pipeline = Pipeline()
 

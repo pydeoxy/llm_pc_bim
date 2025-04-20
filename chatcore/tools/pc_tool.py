@@ -39,7 +39,7 @@ def pc_visual(pc_file_path: str):
     vis_process.start()
     
     # Return message immediately
-    return "Point cloud visualization started"
+    return "FROM FUNCTION CALL: Point cloud visualization started."
 
 pc_visual_tool = Tool(name="pc_visual_tool",
             description="A tool to visualize a point cloud by its file path.",
@@ -70,7 +70,7 @@ class PcToolCallAssistant:
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[no_call_tool_call])]}
         else:
-            return {"helper_messages":[ChatMessage.from_assistant("No function calling founded.")]}
+            return {"helper_messages":[ChatMessage.from_assistant("No function calling found.")]}
 
 
 

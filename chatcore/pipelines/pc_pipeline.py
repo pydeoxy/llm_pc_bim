@@ -12,67 +12,34 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.pc_tool import pc_visual_tool, no_call_tool,PcToolCallAssistant
-from chatcore.pipelines.ifc_pipeline import NoFunctionCall,ToolResult,QueryToMessage
+from chatcore.pipelines.ifc_pipeline import ToolResult,QueryToMessage
 
 def create_pc_pipeline(
-    #pc_file: Any,
-    #llm: Any,
-    #web_search: Any
     ) -> Pipeline:
     """
     Creates and configures the document processing pipeline
-    
-    Args:
-        document_manager: Initialized document store
-        llm: Configured LLM generator
-        web_search: Initialized web search component
-        
+         
     Returns:
         Configured Pipeline instance
     """
-
-
-    # Define routing conditions
-    routes = [
-        {
-            "condition": "{{'point' in messages[0].text.lower()}}",
-            "output": "{{messages[0]}}",
-            "output_name": "pc_tool_calls",
-            "output_type": ChatMessage,  # Use direct type
-        },
-        {
-            "condition": "{{'point' not in messages[0].text.lower()}}",
-            "output": "{{messages[0]}}",
-            "output_name": "no_tool_calls",
-            "output_type": ChatMessage,  # Use direct type
-        },
-    ]
-
-    # Initialize the ConditionalRouter
-    router = ConditionalRouter(routes, unsafe=True)
 
     # Initialize the ToolInvoker with the weather tool
     query_to_message = QueryToMessage()
     pc_tool_checker = PcToolCallAssistant()
     tool_invoker = ToolInvoker(tools=[pc_visual_tool,no_call_tool])
-    no_call_helper = NoFunctionCall()
-    pc_out_message = PipeOutMessage()
+    tool_result = ToolResult()
 
     # Create the pipeline
     pipeline = Pipeline()
     pipeline.add_component("query_to_message", query_to_message)
-    pipeline.add_component("router", router)
     pipeline.add_component("tool_checker", pc_tool_checker)
     pipeline.add_component("tool_invoker", tool_invoker)
-    pipeline.add_component("no_call_helper", no_call_helper)
-    pipeline.add_component("pc_out_message", pc_out_message)
+    pipeline.add_component("tool_result", tool_result)
 
     # Connect components
-    pipeline.connect("query_to_message.message", "router")
-    pipeline.connect("router.pc_tool_calls", "tool_checker.message")  
+    pipeline.connect("query_to_message.message", "tool_checker.message")  
     pipeline.connect("tool_checker.helper_messages", "tool_invoker.messages")  
-    pipeline.connect("router.no_tool_calls", "no_call_helper.message") 
-    pipeline.connect("tool_invoker.tool_messages", "pc_out_message.messages") 
+    pipeline.connect("tool_invoker.tool_messages", "tool_result.messages") 
 
     return pipeline
 
@@ -80,9 +47,13 @@ def create_pc_pipeline(
 if __name__ == "__main__":
     # Example user message
     pc_pipe = create_pc_pipeline()    
-    #query = "Visualize the point cloud"
+
+    # Visualizing the pipeline 
+    pc_pipe.draw(path="docs/pc_pipeline_diagram.png")
+
+    query = "Visualize the point cloud"
     #query = "Where is Finland?"
-    query="How many points are there in the point cloud?"
+    #query="How many points are there in the point cloud?"
     # Run the pipeline
     result = pc_pipe.run({"query": query})
     print(result)
