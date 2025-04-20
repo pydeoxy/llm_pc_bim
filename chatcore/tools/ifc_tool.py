@@ -17,7 +17,8 @@ from chatcore.utils.config_loader import load_path_config
 
 # Reference dictionary of tools and their possible corresponding queries
 ifc_tool_reference = {"ifc_entity_tool":"List the main ifc entities of the IFC file.",
-                      "ifc_query_tool":"How many IfcWalls are there in the IFC file?"}
+                      "ifc_query_tool":"How many IfcWalls are there in the IFC file?",
+                      "no_call":"ifc file"}
 
 # Tool to get main ifc entities
 def get_main_ifc_entities(ifc_file_path: str):
@@ -88,6 +89,26 @@ ifc_query_tool = Tool(name="ifc_query_tool",
                            "entity_name":{"type": "string"}},
             "required": ["ifc_file_path", "entity_name"]})
 
+# Tool to skip function calling
+def no_call(query: str):
+    """
+    Skip function calling for queries not related to functions.
+
+    Args:
+        User's query.
+
+    Returns:
+        str: No functions founded.
+    """ 
+    #file_name = os.path.basename(ifc_file_path)      
+    return f"No functions founded for query: '{query}'."
+
+no_call_tool = Tool(name="no_call_tool",
+            description="A tool to skip function calling for queries not related to functions.",
+            function=no_call,
+            parameters={"type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"]})
 
 # Function of find the most possible tool
 def tool_locate(query,tool_ref):
@@ -129,6 +150,12 @@ class IfcToolCallAssistant:
                            "entity_name": extract_ifc_entity_name(message.text)}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_query_tool_call])]}
+        elif tool == "no_call":
+            no_call_tool_call = ToolCall(
+                tool_name="no_call_tool",
+                arguments={"query": query}
+                )
+            return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[no_call_tool_call])]}
         else:
             return {"helper_messages":[ChatMessage.from_assistant("No function calling founded.")]}
 
@@ -162,15 +189,15 @@ if __name__ == '__main__':
     query = "What is the IFC schema of the file?"
     print(query_similarity(ifc_tool_reference["ifc_entity_tool"], query))
     print(query_similarity(ifc_tool_reference["ifc_query_tool"], query))      
-    print(query_similarity("the ifc file", query))                      
+    print(query_similarity(ifc_tool_reference["no_call"], query))                     
                 
 
     user_message = ChatMessage.from_user(query)
     ifc_file_path= "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Courses/CRBE/IFC/BIM4EEB-TUD-2x3.ifc"
-    ifc_tool_checker = IfcToolCallAssistant(ifc_file_path)
+    ifc_tool_checker = IfcToolCallAssistant()
     answer = ifc_tool_checker.run(user_message)
     print(answer)
 
-    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool])
+    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool,no_call_tool])
     result = tool_invoker.run(answer["helper_messages"])
     print(result)

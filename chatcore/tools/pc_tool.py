@@ -15,9 +15,11 @@ if repo_root not in sys.path:
 
 from chatcore.utils.helpers import query_similarity
 from chatcore.utils.config_loader import load_path_config
+from chatcore.tools.ifc_tool import tool_locate,no_call_tool
 
 # Reference dictionary of tools and their possible corresponding queries
-tool_reference = {"pc_visual_tool":"Visualize the point cloud file."}
+pc_tool_reference = {"pc_visual_tool":"Visualize the point cloud file.",
+                  "no_call":"point cloud"}
 
 def visualize_point_cloud(pc_file_path):
     try:
@@ -54,12 +56,19 @@ class PcToolCallAssistant:
 
     @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
-        if query_similarity(tool_reference["pc_visual_tool"], message.text)>0.6:
+        tool = tool_locate(message.text,pc_tool_reference)
+        if tool == "pc_visual_tool":        
             pc_visual_tool_call = ToolCall(
                 tool_name="pc_visual_tool",
                 arguments={"pc_file_path": paths["pc_file_path"]}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[pc_visual_tool_call])]}
+        elif tool == "no_call":
+            no_call_tool_call = ToolCall(
+                tool_name="no_call_tool",
+                arguments={"query": message.text}
+                )
+            return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[no_call_tool_call])]}
         else:
             return {"helper_messages":[ChatMessage.from_assistant("No function calling founded.")]}
 
@@ -78,11 +87,12 @@ if __name__ == '__main__':
   
     
     # ToolInvoker initialization and run
-    invoker = ToolInvoker(tools=[pc_visual_tool])
+    #invoker = ToolInvoker(tools=[pc_visual_tool,no_call_tool])
     #result = invoker.run(messages=[message])
 
     #print(result)
 
     query = "How many points are there in the point cloud?"
-    print(query_similarity(tool_reference["pc_visual_tool"], query))
-    print(query_similarity("the point cloud", query))
+    print(query_similarity(pc_tool_reference["pc_visual_tool"], query))
+    print(query_similarity(pc_tool_reference["no_call"], query))
+    

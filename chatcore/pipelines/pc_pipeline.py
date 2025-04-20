@@ -11,7 +11,7 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.tools.pc_tool import pc_visual_tool, PcToolCallAssistant
+from chatcore.tools.pc_tool import pc_visual_tool, no_call_tool,PcToolCallAssistant
 from chatcore.pipelines.ifc_pipeline import NoFunctionCall,PipeOutMessage,QueryToMessage
 
 def create_pc_pipeline(
@@ -54,7 +54,7 @@ def create_pc_pipeline(
     # Initialize the ToolInvoker with the weather tool
     query_to_message = QueryToMessage()
     pc_tool_checker = PcToolCallAssistant()
-    tool_invoker = ToolInvoker(tools=[pc_visual_tool])
+    tool_invoker = ToolInvoker(tools=[pc_visual_tool,no_call_tool])
     no_call_helper = NoFunctionCall()
     pc_out_message = PipeOutMessage()
 
@@ -80,9 +80,9 @@ def create_pc_pipeline(
 if __name__ == "__main__":
     # Example user message
     pc_pipe = create_pc_pipeline()    
-    query = "Visualize the point cloud"
+    #query = "Visualize the point cloud"
     #query = "Where is Finland?"
-    #user_message = ChatMessage.from_user("How many points are there in the point cloud?")
+    query="How many points are there in the point cloud?"
     # Run the pipeline
     result = pc_pipe.run({"query": query})
     print(result)

@@ -152,10 +152,10 @@ def create_main_pipeline(
         """
         A component generating personal welcome message and making it upper case
         """
-        @component.output_types(documents=Dict)
+        @component.output_types(answer=str)
         def run(self, query:str) -> dict:
-            responce = doc_pipeline.run({"text_embedder": {"text": query}})
-            return {"documents":responce["retriever"]["documents"]}
+            responce = doc_pipeline.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+            return {"answer":responce["router"]["answer"]}
 
     doc_pipe = DocPipeline()
 
@@ -218,7 +218,8 @@ if __name__ == "__main__":
 
     doc_pipeline = create_doc_pipeline(
         precessed_docs,    
-        llm,    
+        llm, 
+        web_search=DuckduckgoApiWebSearch(top_k=5)   
         )
     
     ifc_pipeline = create_ifc_pipeline()
@@ -236,10 +237,11 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
-    query = "Where is the project smartLab?"
-    #query = "Where is the project Helsinki?"
+    #query = "Where is the project smartLab?"
+    #query = "Where is the Helsinki?"
     #query = "How many IfcWindow are there in the IFC file?"
     #query = "Visualize the point cloud."
+    query = "What is IFC?"
     
     # Run the pipeline
     result = main_pipe.run({"query": query})
