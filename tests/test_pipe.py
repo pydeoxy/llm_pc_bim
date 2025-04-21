@@ -106,52 +106,51 @@ def create_main_pipeline(
     ]
 
     # Initialize the ConditionalRouter
-    query_router = ConditionalRouter(query_conditions , unsafe=True)       
-
-    pipeout_routes = [
-        {
-            "condition": "{{'FROM FUNCTION CALL' in tool_result.tool_result.tool_result}}",
-            "output": "{{tool_result.tool_result.tool_result}}",
-            "output_name": "answer",
-            "output_type": str,
-        },        
-        {
-            "condition": "{{'FROM FUNCTION CALL' not in tool_result.tool_result.tool_result}}",
-            "output": "{{tool_result.tool_result.tool_result}}",
-            "output_name": "no_answer",
-            "output_type": str,
-        },
-        
-    ]
-
-    pipeout_router = ConditionalRouter(pipeout_routes)
+    query_router = ConditionalRouter(query_conditions , unsafe=True)     
 
     reply_routes = [
         {
             "condition": "{{'no_answer' in replies[0]}}",
-            "output": "{{query}}",
-            "output_name": "go_to_websearch",
+            "output": "{{replies[0]}}",
+            "output_name": "value",
             "output_type": str,
         },
         {
             "condition": "{{'no_answer' not in replies[0]}}",
             "output": "{{replies[0]}}",
-            "output_name": "answer",
+            "output_name": "value",
             "output_type": str,
         },
     ]
 
     reply_router = ConditionalRouter(reply_routes)
+
+    pipe_message_routes = [
+        {
+            "condition": "{{'no_answer' in value}}",
+            "output": "{{query}}",
+            "output_name": "go_to_websearch",
+            "output_type": str,
+        },
+        {
+            "condition": "{{'no_answer' not in value}}",
+            "output": "{{value}}",
+            "output_name": "answer",
+            "output_type": str,
+        },
+    ]
+
+    pipe_message_router = ConditionalRouter(pipe_message_routes)
     
     @component
     class IfcPipeline:
         """
         A component generating personal welcome message and making it upper case
         """
-        @component.output_types(pipe_message=ChatMessage)
+        @component.output_types(pipe_message=str)
         def run(self, query:str):
-            return  {"pipe_message":ifc_pipeline.run({"query": query})}
-
+            result = ifc_pipeline.run({"query": query})
+            return  {"pipe_message":result["tool_result"]["tool_result"]}
     ifc_pipe = IfcPipeline()
 
     @component
@@ -159,10 +158,10 @@ def create_main_pipeline(
         """
         A component generating personal welcome message and making it upper case
         """
-        @component.output_types(pipe_message=ChatMessage)
+        @component.output_types(pipe_message=str)
         def run(self, query:str) -> dict:
-            return {"pipe_message":pc_pipeline.run({"query": query})}
-
+            result = pc_pipeline.run({"query": query})
+            return  {"pipe_message":result["tool_result"]["tool_result"]}
     pc_pipe = PcPipeline()
 
     @component
@@ -173,50 +172,42 @@ def create_main_pipeline(
         @component.output_types(documents=List[Document])
         def run(self, query:str) -> dict:
             responce = doc_pipeline.run({"text_embedder": {"text": query}})
-            return {"documents":responce["retriever"]["documents"]}        
-         
+            return {"documents":responce["retriever"]["documents"]}  
+    doc_pipe = DocPipeline()   
     
-    pipeout_joiner = BranchJoiner(ChatMessage)
-
-    doc_pipe = DocPipeline()
+    pipe_message_joiner = BranchJoiner(str)
+    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)    
 
     pipeline = Pipeline()
     pipeline.add_component("query_router", query_router)
     pipeline.add_component("doc_pipe", doc_pipe)   
     pipeline.add_component("ifc_pipe", ifc_pipe)   
     pipeline.add_component("pc_pipe", pc_pipe)  
-    pipeline.add_component("pipeout_joiner", pipeout_joiner)  
-    pipeline.add_component("reply_router", reply_router) 
-    #pipeline.add_component("message_joiner", message_joiner)
+    pipeline.add_component("reply_router", reply_router)     
     pipeline.add_component("prompt_builder_query", prompt_builder_query)
     pipeline.add_component("prompt_joiner", prompt_joiner)
     pipeline.add_component("llm", llm)
-    pipeline.add_component("pipeout_router", pipeout_router)
-    #pipeline.add_component("web_search", web_search)
-    #pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
+    pipeline.add_component("pipe_message_joiner", pipe_message_joiner)
+    pipeline.add_component("pipe_message_router", pipe_message_router)
+    pipeline.add_component("web_search", web_search)
+    pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
 
-    # Connect components based on routing
-    # Prompt missing    
+    # Connect components based on routing        
     pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
     pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.query") 
     pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
     pipeline.connect("doc_pipe.documents", "prompt_builder_query.documents")
     pipeline.connect("prompt_builder_query", "prompt_joiner")
     pipeline.connect("prompt_joiner", "llm")
-    pipeline.connect("llm.replies", "reply_router.replies")    
-    pipeline.connect("ifc_pipe.pipe_message", "pipeout_joiner")
-    pipeline.connect("pc_pipe.pipe_message", "pipeout_joiner")
-    pipeline.connect("pipeout_joiner", "pipeout_router")
-    
-
-    
-    #pipeline.connect("prompt_joiner", "llm")
-
-    
-    #pipeline.connect("reply_router.go_to_websearch", "web_search.query")
-    #pipeline.connect("reply_router.go_to_websearch", "prompt_builder_after_websearch.query")
-    #pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
-    #pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")    
+    pipeline.connect("llm.replies", "reply_router")
+    pipeline.connect("reply_router.value", "pipe_message_joiner")
+    pipeline.connect("ifc_pipe.pipe_message","pipe_message_joiner")
+    pipeline.connect("pc_pipe.pipe_message","pipe_message_joiner")
+    pipeline.connect("pipe_message_joiner.value","pipe_message_router")
+    pipeline.connect("pipe_message_router.go_to_websearch", "web_search.query")
+    pipeline.connect("pipe_message_router.go_to_websearch", "prompt_builder_after_websearch.query")
+    pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
+    pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")    
     
     return pipeline
 
@@ -251,8 +242,7 @@ if __name__ == "__main__":
         #web_search=DuckduckgoApiWebSearch(top_k=5)
         )
     
-    # Visualizing the pipeline 
-    #doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
+    
     ifc_pipe = create_ifc_pipeline()
     pc_pipe = create_pc_pipeline()
 
@@ -263,12 +253,19 @@ if __name__ == "__main__":
         pc_pipeline=pc_pipe,
         web_search=DuckduckgoApiWebSearch(top_k=5)
     )
+
+    # Visualizing the pipeline 
+    #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
     #query = "What is the capital of Finland?"
     #query = "What is the project SmartLab?"
     #query= "How many IfcWindow are there in the IFC file?"
-    query= "What is IFC?"
+    query= "What is ifc schema?"
     #query="How many points are there in the point cloud?"
 
-    result = main_pipe.run({"query": query})
+    result = main_pipe.run({"query_router":{"query": query}, "prompt_builder_query":{"query": query}, "pipe_message_router":{"query":query}})
     print(result)
+
+
+    #result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+
