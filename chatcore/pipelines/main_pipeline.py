@@ -62,8 +62,7 @@ def create_main_pipeline(
             "output_type": str,
         },     
         {
-            "condition": "{{'ifc' not in query|lower}}"
-                        "and {{'point cloud' not in query|lower}}",
+            "condition": "{{'ifc' not in query|lower and 'point cloud' not in query|lower}}",
             "output": "{{query}}",
             "output_name": "go_to_docpipeline",
             "output_type": str,
@@ -90,15 +89,15 @@ def create_main_pipeline(
 
     reply_router = ConditionalRouter(reply_routes)
 
-    pipe_message_routes = [
+    pipe_message_routes = [         
         {
-            "condition": "{{'no_answer' in value}}",
+            "condition": "{{'no_answer' in value|lower}}",
             "output": "{{query}}",
             "output_name": "go_to_websearch",
             "output_type": str,
-        },
+        },       
         {
-            "condition": "{{'no_answer' not in value}}",
+            "condition": "{{'no_answer' not in value|lower}}",
             "output": "{{value}}",
             "output_name": "answer",
             "output_type": str,
@@ -222,7 +221,7 @@ if __name__ == "__main__":
     #query= "What is ifc schema?"
     #query="How many points are there in the point cloud?"
 
-    result = main_pipe.run({"query_router":{"query": query}, "prompt_builder_query":{"query": query}, "pipe_message_router":{"query":query}})
+    result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
     print(result)
 
    

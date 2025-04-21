@@ -49,7 +49,7 @@ if __name__ == "__main__":
     pc_pipe = create_pc_pipeline()    
 
     # Visualizing the pipeline 
-    pc_pipe.draw(path="docs/pc_pipeline_diagram.png")
+    #pc_pipe.draw(path="docs/pc_pipeline_diagram.png")
 
     query = "Visualize the point cloud"
     #query = "Where is Finland?"

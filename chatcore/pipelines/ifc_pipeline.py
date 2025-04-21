@@ -61,7 +61,7 @@ if __name__ == "__main__":
     ifc_pipe = create_ifc_pipeline()
 
     # Visualizing the pipeline 
-    ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
+    #ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
 
     #query="What are the main ifcentities in the ifc file?"
     #query= "How many IfcWindow are there in the IFC file?"

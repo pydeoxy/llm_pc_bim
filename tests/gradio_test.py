@@ -18,6 +18,7 @@ from chatcore.utils.config_loader import load_llm_config
 from chatcore.pipelines.doc_pipeline import create_doc_pipeline
 from chatcore.pipelines.ifc_pipeline import create_ifc_pipeline
 from chatcore.pipelines.pc_pipeline import create_pc_pipeline
+from chatcore.pipelines.main_pipeline import create_main_pipeline
 from chatcore.tools.doc_processing import DocumentManager
 
 '''
@@ -27,6 +28,7 @@ Add buttons to initialize pipelines and tool pipelines
 doc_pipe = Pipeline()
 ifc_pipe = Pipeline()
 pc_pipe = Pipeline()
+main_pipe = Pipeline()
 
 def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     """Update JSON config and process documents into Haystack's document store."""
@@ -36,7 +38,7 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     # Update file path (handle temporary uploads)
     if ifc_file_input is not None:
         config["ifc_file_path"] = ifc_file_input.name  # Store uploaded file's persistent path
-        ifc_pipe = create_ifc_pipeline(ifc_file_input.name)
+        ifc_pipe = create_ifc_pipeline()
     else:
         config.pop("ifc_file_path", None)
 
@@ -60,9 +62,33 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
 
     if os.path.exists("config/config.json"):
         with open("config.json", "r") as f:
-            config = json.load(f)
-    
+            config = json.load(f)    
+        
     return None
+
+def main_pipe_start():
+    global main_pipe,ifc_pipe, pc_pipe, doc_pipe
+    llm_config = load_llm_config()
+    
+    llm = HuggingFaceLocalGenerator(
+        model=llm_config["model_name"],
+        huggingface_pipeline_kwargs={
+            "device_map": llm_config["device_map"],
+            "torch_dtype": llm_config["torch_dtype"],        
+            #"model_kwargs": {"use_auth_token": llm_config["huggingface"]["use_auth_token"]}
+        },
+        generation_kwargs=llm_config["generation"]
+    )
+
+    llm.warm_up()
+
+    main_pipe = create_main_pipeline(
+        llm=llm,
+        doc_pipeline=doc_pipe,
+        ifc_pipeline=ifc_pipe,
+        pc_pipeline=pc_pipe,
+        web_search=DuckduckgoApiWebSearch(top_k=5)
+    )
 
 def doc_pipe_start(folder_path):
     global doc_pipe
@@ -94,8 +120,8 @@ model_id = "meta-llama/Llama-3.2-3B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 model = AutoModelForCausalLM.from_pretrained(model_id)
 
-def response_docs(query):    
-    result = doc_pipe.run({"text_embedder": {"text": query}, "prompt_builder": {"query": query}, "router": {"query": query}})
+def response(query):    
+    result = main_pipe.run({"query_router":{"query": query}, "prompt_builder_query":{"query": query}, "pipe_message_router":{"query":query}})
     return result["router"]["answer"]
 
 def response_ifc(query):
@@ -162,6 +188,8 @@ def create_interface():
             inputs=[ifc_file_input, pc_file_input, folder_input],
             outputs=None
         )
+
+        main_pipe_start()
         
         gr.ChatInterface(
             generate_response,
