@@ -10,7 +10,7 @@ import json
 from haystack import Pipeline
 from haystack.dataclasses import ChatMessage
 
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
@@ -37,37 +37,47 @@ def update_config_and_index(ifc_file_input, pc_file_input, folder_input):
     
     # Update file path (handle temporary uploads)
     if ifc_file_input is not None:
-        config["ifc_file_path"] = ifc_file_input.name  # Store uploaded file's persistent path
-        ifc_pipe = create_ifc_pipeline()
+        config["ifc_file_path"] = ifc_file_input.name  # Store uploaded file's persistent path        
     else:
         config.pop("ifc_file_path", None)
 
     if pc_file_input is not None:
-        config["pc_file_path"] = pc_file_input.name  # Store uploaded file's persistent path
-        pc_pipe = create_pc_pipeline()
+        config["pc_file_path"] = pc_file_input.name  # Store uploaded file's persistent path        
     else:
         config.pop("pc_file_path", None)
     
     # Update folder path
     if folder_input.strip():
-        config["folder_path"] = folder_input.strip()
-        # Process documents
-        doc_pipe_start(config["folder_path"])
+        config["folder_path"] = folder_input.strip()        
     else:
         config.pop("folder_path", None)
     
     # Save config
     with open("config/config.json", "w") as f:
-        json.dump(config, f)    
-
-    if os.path.exists("config/config.json"):
-        with open("config.json", "r") as f:
-            config = json.load(f)    
+        json.dump(config, f)       
         
     return None
 
+def doc_pipe_start(folder_path):
+    global doc_pipe    
+
+    doc_store = DocumentManager(folder_path)
+    precessed_docs= doc_store.process_documents()
+
+    doc_pipe = create_doc_pipeline(
+        precessed_docs,        
+        )
+
 def main_pipe_start():
     global main_pipe,ifc_pipe, pc_pipe, doc_pipe
+    if os.path.exists("config/config.json"):
+        with open("config.json", "r") as f:
+            config = json.load(f)  
+
+    ifc_pipe = create_ifc_pipeline()
+    pc_pipe = create_pc_pipeline()
+    doc_pipe_start(config["folder_path"])
+
     llm_config = load_llm_config()
     
     llm = HuggingFaceLocalGenerator(
@@ -90,78 +100,9 @@ def main_pipe_start():
         web_search=DuckduckgoApiWebSearch(top_k=5)
     )
 
-def doc_pipe_start(folder_path):
-    global doc_pipe
-    llm_config = load_llm_config()
-    
-    llm = HuggingFaceLocalGenerator(
-        model=llm_config["model_name"],
-        huggingface_pipeline_kwargs={
-            "device_map": llm_config["device_map"],
-            "torch_dtype": llm_config["torch_dtype"],        
-            #"model_kwargs": {"use_auth_token": llm_config["huggingface"]["use_auth_token"]}
-        },
-        generation_kwargs=llm_config["generation"]
-    )
-
-    llm.warm_up()
-
-    doc_store = DocumentManager(folder_path)
-    precessed_docs= doc_store.process_documents()
-
-    doc_pipe = create_doc_pipeline(
-        precessed_docs,
-        llm,
-        web_search=DuckduckgoApiWebSearch(top_k=5)
-        )
-
-# Load the Llama-3 model (corrected model ID)
-model_id = "meta-llama/Llama-3.2-3B-Instruct"
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(model_id)
-
-def response(query):    
-    result = main_pipe.run({"query_router":{"query": query}, "prompt_builder_query":{"query": query}, "pipe_message_router":{"query":query}})
-    return result["router"]["answer"]
-
-def response_ifc(query):
-    user_message = ChatMessage.from_user(query)    
-    result = ifc_pipe.run({"messages": [user_message]})
-    return result['tool_invoker']['tool_messages'][0].tool_call_result.result
-
-def response_pc(query):    
-    user_message = ChatMessage.from_user(query)    
-    result = pc_pipe.run({"messages": [user_message]})
-    return result['tool_invoker']['tool_messages'][0].tool_call_result.result
-
-def generate_response(message, history, ifc_path, pc_path, folder_path):
-    """Generate response with file/folder context"""     
-    
-    if ifc_path and 'ifc' in message.lower():
-        answer = response_ifc(message)
-    elif pc_path and 'point cloud' in message.lower():
-        answer = response_pc(message)   
-    elif folder_path and 'project' in message.lower():
-        answer = response_docs(message)
-    else:
-        answer = 'No file or documents related to the query.'
-    
-    system_prompt = """Analyze the following context:\n"""    
-    system_prompt += f"[PRELIMINARY ANSWER TO USER'S QUERY]\n{answer}\n"
-    
-    
-    prompt = f"""<|begin_of_text|>
-    <|start_header_id|>system<|end_header_id|>
-    {system_prompt}<|eot_id|>
-    <|start_header_id|>user<|end_header_id|>
-    {message}<|eot_id|>
-    <|start_header_id|>assistant<|end_header_id|>"""
-    
-    inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
-    outputs = model.generate(**inputs, max_new_tokens=512, temperature=0.7)
-    
-    response = tokenizer.decode(outputs[0], skip_special_tokens=False)
-    return response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].split("<|eot_id|>")[0].strip()
+def generate_response(message,history):
+    result = main_pipe.run({"query_router":{"query": message},"pipe_message_router":{"query":message}})
+    return result['pipe_message_router']['answer']
 
 def create_interface():
     with gr.Blocks() as demo:
@@ -193,7 +134,7 @@ def create_interface():
         
         gr.ChatInterface(
             generate_response,
-            additional_inputs=[ifc_file_input, pc_file_input, folder_input],
+            #additional_inputs=[ifc_file_input, pc_file_input, folder_input],
             #examples=[
                 # Each example must be a list with values for all inputs
             #    ["What's in the file?", None, "/path/to/your/folder"],
@@ -206,3 +147,20 @@ def create_interface():
 if __name__ == "__main__":
     interface = create_interface()
     interface.launch(inbrowser = True)
+
+    '''
+    def generate_response(message):
+        result = main_pipe.run({"query_router":{"query": message},"pipe_message_router":{"query":message}})
+        return result['pipe_message_router']['answer']
+
+    main_pipe_start()
+    #query = "What is IFC in the construction industry?"
+    #query = "What is the capital of Finland?"
+    #query = "What is the project SmartLab?"
+    query= "How many IfcWindow are there in the IFC file?"
+    #query= "What is ifc schema?"
+    #query="How many points are there in the point cloud?"
+    result = generate_response(query)
+
+    print(result)
+    '''

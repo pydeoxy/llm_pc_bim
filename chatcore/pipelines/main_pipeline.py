@@ -14,9 +14,9 @@ if repo_root not in sys.path:
 
 from duckduckgo_api_haystack import DuckduckgoApiWebSearch
 from chatcore.utils.config_loader import load_llm_config
-from doc_pipeline import create_doc_pipeline
-from ifc_pipeline import create_ifc_pipeline
-from pc_pipeline import create_pc_pipeline
+from chatcore.pipelines.doc_pipeline import create_doc_pipeline
+from chatcore.pipelines.ifc_pipeline import create_ifc_pipeline
+from chatcore.pipelines.pc_pipeline import create_pc_pipeline
 
 from chatcore.utils.prompts import prompt_template_doc,prompt_template_after_websearch
 from chatcore.tools.doc_processing import DocumentManager
@@ -215,9 +215,9 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
-    #query = "What is the capital of Finland?"
+    query = "What is the capital of Finland?"
     #query = "What is the project SmartLab?"
-    query= "How many IfcWindow are there in the IFC file?"
+    #query= "How many IfcWindow are there in the IFC file?"
     #query= "What is ifc schema?"
     #query="How many points are there in the point cloud?"
 
