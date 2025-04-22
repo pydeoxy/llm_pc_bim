@@ -1,5 +1,4 @@
-
-prompt_template_doc = """
+cot_template = """
     <|begin_of_text|><|start_header_id|>system<|end_header_id|>
     You are a logical thinker that always explains your reasoning step-by-step.
     Follow this structure:
@@ -8,19 +7,8 @@ prompt_template_doc = """
     3. Consider different perspectives
     4. Evaluate evidence logically
     5. Conclude with final answer<|eot_id|>
-    
+
     <|start_header_id|>user<|end_header_id|>
-
-    Answer the following query from given the documents.
-    If the answer is not contained within the documents reply with 'no_answer'.
-    If the answer is contained within the documents, start the answer with "FROM THE KNOWLEDGE BASE: ", 
-    and translate the answer into the same language of the query.
-
-    Documents:
-    {% for document in documents %}
-    {{document.content}}
-    {% endfor %}
-
     Query: {{query}}<|eot_id|>
 
     <|start_header_id|>assistant<|end_header_id|>
@@ -33,8 +21,19 @@ prompt_template_doc = """
 
     Final Answer:
     """
+prompt_template_doc = """
+    <|begin_of_text|><|start_header_id|>user<|end_header_id|>
+    Answer the following query from the given documents with the same language of the query.
+    If the answer is contained within the documents, start the answer with "FROM THE KNOWLEDGE BASE: ".
+    If the answer is not contained within the documents reply with 'no_answer'.   
 
+    Documents:
+    {% for document in documents %}
+    {{document.content}}
+    {% endfor %}
 
+    Query: {{query}} <|eot_id|>
+    """
 prompt_template_after_websearch = """
     <|begin_of_text|><|start_header_id|>user<|end_header_id|>
 
@@ -58,4 +57,12 @@ prompt_template_after_websearch = """
 
     <|start_header_id|>assistant<|end_header_id|>
     {% endif %}
+    """
+
+prompt_template_no_websearch = """
+    <|begin_of_text|><|start_header_id|>user<|end_header_id|>    
+    Answer the following query using your own internal knowledge.
+    Start the answer with "FROM LLM MODEL: ".
+
+    Query: {{ query }}<|eot_id|>
     """

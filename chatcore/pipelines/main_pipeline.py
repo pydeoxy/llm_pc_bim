@@ -18,12 +18,11 @@ from chatcore.pipelines.doc_pipeline import create_doc_pipeline
 from chatcore.pipelines.ifc_pipeline import create_ifc_pipeline
 from chatcore.pipelines.pc_pipeline import create_pc_pipeline
 
-from chatcore.utils.prompts import prompt_template_doc,prompt_template_after_websearch
+from chatcore.utils.prompts import prompt_template_doc,prompt_template_after_websearch,prompt_template_no_websearch
 from chatcore.tools.doc_processing import DocumentManager
 
 import logging
 logger = logging.getLogger(__name__)
-
 class SafeWebSearch(DuckduckgoApiWebSearch):
     def run(self, query: str, **kwargs):
         try:
@@ -34,7 +33,7 @@ class SafeWebSearch(DuckduckgoApiWebSearch):
             logger.warning(f"Web‐search failed ({e}), falling back to LLM internal knowledge.")
             # return the same structure, but empty
             # adjust key names to match what your pipeline expects
-            return {"web_search":{"documents": [Document(content="answer not found from documents.")]}}
+            return {"web_search":{"documents": [Document(content="")]}}
 safe_search = SafeWebSearch(top_k=5)
 
 def create_main_pipeline(
@@ -107,13 +106,13 @@ def create_main_pipeline(
 
     pipe_message_routes = [         
         {
-            "condition": "{{'no_answer' in value|lower}}",
+            "condition": "{{'no_answer' in value}}",
             "output": "{{query}}",
             "output_name": "go_to_websearch",
             "output_type": str,
         },       
         {
-            "condition": "{{'no_answer' not in value|lower}}",
+            "condition": "{{'no_answer' not in value}}",
             "output": "{{value}}",
             "output_name": "answer",
             "output_type": str,
@@ -156,7 +155,8 @@ def create_main_pipeline(
     doc_pipe = DocPipeline()   
     
     pipe_message_joiner = BranchJoiner(str)
-    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)    
+    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)  
+    prompt_builder_no_websearch = PromptBuilder(template=prompt_template_no_websearch)   
 
     pipeline = Pipeline()
     pipeline.add_component("query_router", query_router)
@@ -171,6 +171,7 @@ def create_main_pipeline(
     pipeline.add_component("pipe_message_router", pipe_message_router)
     pipeline.add_component("web_search", web_search)
     pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
+    pipeline.add_component("prompt_builder_no_websearch", prompt_builder_no_websearch)
 
     # Connect components based on routing        
     pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
@@ -184,10 +185,15 @@ def create_main_pipeline(
     pipeline.connect("ifc_pipe.pipe_message","pipe_message_joiner")
     pipeline.connect("pc_pipe.pipe_message","pipe_message_joiner")
     pipeline.connect("pipe_message_joiner.value","pipe_message_router")
-    pipeline.connect("pipe_message_router.go_to_websearch", "web_search.query")
-    pipeline.connect("pipe_message_router.go_to_websearch", "prompt_builder_after_websearch.query")
-    pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
-    pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")    
+    try:
+        pipeline.connect("pipe_message_router.go_to_websearch", "web_search.query")
+        pipeline.connect("pipe_message_router.go_to_websearch", "prompt_builder_after_websearch.query")
+        pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
+        pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")    
+    except Exception as e:
+        logger.error(f"Pipeline failed ({e}), using LLM directly.")
+        pipeline.connect("pipe_message_router.go_to_websearch","prompt_builder_no_websearch.query")
+        pipeline.connect("prompt_builder_no_websearch", "prompt_joiner")  
     
     return pipeline
 
@@ -232,13 +238,13 @@ if __name__ == "__main__":
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
     #query = "What is the capital of Finland?"
-    query = "Where is SmartLab?"
+    #query = "What is SmartLab?"
     #query = "Who are involved in the project SmartLab?"
     #query= "How many IfcWindow are there in the IFC file?"
-    #query= "What is ifc schema?"
+    query= "What is ifc schema?"
     #query="How many points are there in the point cloud?"
 
-    result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
+    result = main_pipe.run({"query_router":{"query": query},"prompt_builder_query":{"query":query},"pipe_message_router":{"query":query}})
     print(result)
 
    

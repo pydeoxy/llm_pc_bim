@@ -101,7 +101,7 @@ def main_pipe_start():
     )
 
 def generate_response(message,history):
-    result = main_pipe.run({"query_router":{"query": message},"pipe_message_router":{"query":message}})
+    result = main_pipe.run({"query_router":{"query": message},"prompt_builder_query":{"query":message},"pipe_message_router":{"query":message}})
     return result['pipe_message_router']['answer']
 
 def create_interface():
