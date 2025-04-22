@@ -21,6 +21,7 @@ cot_template = """
 
     Final Answer:
     """
+
 prompt_template_doc = """
     <|begin_of_text|><|start_header_id|>user<|end_header_id|>
     Answer the following query from the given documents with the same language of the query.
@@ -34,10 +35,9 @@ prompt_template_doc = """
 
     Query: {{query}} <|eot_id|>
     """
+
 prompt_template_after_websearch = """
     <|begin_of_text|><|start_header_id|>user<|end_header_id|>
-
-    {% if documents and documents | length > 1 %}
     Answer the following query from the documents retrieved from the web.
     Start the answer with "FROM THE WEB: ".
 
@@ -47,16 +47,6 @@ prompt_template_after_websearch = """
     {% endfor %}
 
     Query: {{ query }}<|eot_id|>
-
-    <|start_header_id|>assistant<|end_header_id|>
-    {% else %}
-    Answer the following query using your own internal knowledge.
-    Start the answer with "FROM LLM MODEL: ".
-
-    Query: {{ query }}<|eot_id|>
-
-    <|start_header_id|>assistant<|end_header_id|>
-    {% endif %}
     """
 
 prompt_template_no_websearch = """

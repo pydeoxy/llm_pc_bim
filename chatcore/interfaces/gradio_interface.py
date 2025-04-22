@@ -1,14 +1,10 @@
 import gradio as gr
-import re
-from pathlib import Path
 import sys
 import os
 from duckduckgo_api_haystack import DuckduckgoApiWebSearch
 from haystack.components.generators import HuggingFaceLocalGenerator
-from transformers import AutoTokenizer, AutoModelForCausalLM
 import json
 from haystack import Pipeline
-from haystack.dataclasses import ChatMessage
 
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
@@ -21,10 +17,6 @@ from chatcore.pipelines.pc_pipeline import create_pc_pipeline
 from chatcore.pipelines.main_pipeline import create_main_pipeline
 from chatcore.tools.doc_processing import DocumentManager
 
-'''
-Add buttons to initialize pipelines and tool pipelines
-
-'''
 doc_pipe = Pipeline()
 ifc_pipe = Pipeline()
 pc_pipe = Pipeline()

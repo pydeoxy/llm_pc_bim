@@ -23,18 +23,6 @@ from chatcore.tools.doc_processing import DocumentManager
 
 import logging
 logger = logging.getLogger(__name__)
-class SafeWebSearch(DuckduckgoApiWebSearch):
-    def run(self, query: str, **kwargs):
-        try:
-            # normal web search
-            return super().run(query=query, **kwargs)
-        except Exception as e:
-            # log the failure
-            logger.warning(f"Web‐search failed ({e}), falling back to LLM internal knowledge.")
-            # return the same structure, but empty
-            # adjust key names to match what your pipeline expects
-            return {"web_search":{"documents": [Document(content="")]}}
-safe_search = SafeWebSearch(top_k=5)
 
 def create_main_pipeline(
     llm: Any,
@@ -231,7 +219,7 @@ if __name__ == "__main__":
         doc_pipeline=doc_pipe,
         ifc_pipeline=ifc_pipe,
         pc_pipeline=pc_pipe,
-        web_search=safe_search
+        web_search=DuckduckgoApiWebSearch(top_k=5)
     )
 
     # Visualizing the pipeline 

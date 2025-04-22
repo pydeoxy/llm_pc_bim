@@ -1,10 +1,6 @@
 from haystack import Pipeline
 from haystack.components.embedders import SentenceTransformersTextEmbedder
 from haystack.components.retrievers.in_memory import InMemoryEmbeddingRetriever
-
-from haystack.components.builders import PromptBuilder
-from haystack.components.joiners import BranchJoiner
-from haystack.components.routers import ConditionalRouter
 from typing import Dict, Any
 
 import sys
@@ -14,12 +10,6 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.doc_processing import DocumentManager
-from chatcore.utils.prompts import prompt_template_doc
-
-'''
-Figure out how to deal with normal questions besides the two routes
-
-'''
 
 def create_doc_pipeline(
     document_store: Any,
