@@ -62,7 +62,8 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
     
-    query = "What is the capital of Finland?"
+    #query = "What is the capital of Finland?"
+    query = "Who are involved in the project SmartLab?"
     #query = "What is ifc schema?"
 
     result = doc_pipe.run({"text_embedder": {"text": query}})

@@ -21,6 +21,22 @@ from chatcore.pipelines.pc_pipeline import create_pc_pipeline
 from chatcore.utils.prompts import prompt_template_doc,prompt_template_after_websearch
 from chatcore.tools.doc_processing import DocumentManager
 
+import logging
+logger = logging.getLogger(__name__)
+
+class SafeWebSearch(DuckduckgoApiWebSearch):
+    def run(self, query: str, **kwargs):
+        try:
+            # normal web search
+            return super().run(query=query, **kwargs)
+        except Exception as e:
+            # log the failure
+            logger.warning(f"Web‐search failed ({e}), falling back to LLM internal knowledge.")
+            # return the same structure, but empty
+            # adjust key names to match what your pipeline expects
+            return {"web_search":{"documents": [Document(content="answer not found from documents.")]}}
+safe_search = SafeWebSearch(top_k=5)
+
 def create_main_pipeline(
     llm: Any,
     doc_pipeline: Pipeline,
@@ -146,11 +162,11 @@ def create_main_pipeline(
     pipeline.add_component("query_router", query_router)
     pipeline.add_component("doc_pipe", doc_pipe)   
     pipeline.add_component("ifc_pipe", ifc_pipe)   
-    pipeline.add_component("pc_pipe", pc_pipe)  
-    pipeline.add_component("reply_router", reply_router)     
+    pipeline.add_component("pc_pipe", pc_pipe)    
     pipeline.add_component("prompt_builder_query", prompt_builder_query)
     pipeline.add_component("prompt_joiner", prompt_joiner)
     pipeline.add_component("llm", llm)
+    pipeline.add_component("reply_router", reply_router)  
     pipeline.add_component("pipe_message_joiner", pipe_message_joiner)
     pipeline.add_component("pipe_message_router", pipe_message_router)
     pipeline.add_component("web_search", web_search)
@@ -209,14 +225,15 @@ if __name__ == "__main__":
         doc_pipeline=doc_pipe,
         ifc_pipeline=ifc_pipe,
         pc_pipeline=pc_pipe,
-        web_search=DuckduckgoApiWebSearch(top_k=5)
+        web_search=safe_search
     )
 
     # Visualizing the pipeline 
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
-    query = "What is the capital of Finland?"
-    #query = "What is the project SmartLab?"
+    #query = "What is the capital of Finland?"
+    query = "Where is SmartLab?"
+    #query = "Who are involved in the project SmartLab?"
     #query= "How many IfcWindow are there in the IFC file?"
     #query= "What is ifc schema?"
     #query="How many points are there in the point cloud?"
