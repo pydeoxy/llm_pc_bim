@@ -5,13 +5,14 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data
 
 class H5PCDataset(Dataset):
-    def __init__(self, file_path, transform=None):
+    def __init__(self, file_path, transform=None, pre_transform = None):
         # Open the hdf5 file
         with h5py.File(file_path, 'r') as f:
             # Load the entire dataset into memory
             self.data = np.array(f['data']).astype(np.float32)    # Shape: (num_blocks, 4096, 9)
             self.labels = np.array(f['label'])   # Shape: (num_blocks, 4096)
         self.transform = transform
+        self.pre_transform = pre_transform
 
         # Precompute the number of unique labels (num_classes)
         self._num_classes = len(np.unique(self.labels))
@@ -42,5 +43,8 @@ class H5PCDataset(Dataset):
         
         if self.transform is not None:
             data = self.transform(data)
+
+        if self.pre_transform is not None:
+            data = self.pre_transform(data)
         
         return data
