@@ -6,6 +6,7 @@ if not WITH_TORCH_CLUSTER:
     quit("This example requires 'torch-cluster'")
 
 import loralib as lora
+import torch.nn as nn
 
 class SAModule(torch.nn.Module):
     def __init__(self, ratio, r, nn):
@@ -200,3 +201,64 @@ class PyGPointNet2NoColorLoRa(torch.nn.Module):
         x, _, _ = self.fp1_module(*fp2_out, *sa0_out)
 
         return self.mlp(x).log_softmax(dim=-1)
+
+# Model for LoRa prediction, lora weights to be added, colorless
+class LoRAMLP(MLP):
+    def __init__(self, channels, r, alpha, dropout=0.0, norm=None):
+        super().__init__(channels, dropout=dropout, norm=norm)
+        # Replace each nn.Linear in self.lins (ModuleList) with lora.Linear
+        for idx, layer in enumerate(self.lins):
+            if isinstance(layer, torch.nn.Linear):
+                # Create a LoRA-enabled Linear
+                lora_layer = lora.Linear(
+                    in_features=layer.in_features,
+                    out_features=layer.out_features,
+                    r=r,
+                    lora_alpha=alpha,
+                    bias=(layer.bias is not None)
+                )
+                # Copy base weights and bias into the LoRA wrapper's base_module
+                lora_layer.base_module.weight.data.copy_(layer.weight.data)
+                if layer.bias is not None:
+                    lora_layer.base_module.bias.data.copy_(layer.bias.data)
+                # Replace in the ModuleList
+                self.lins[idx] = lora_layer
+
+
+class PyGPointNet2X3LoRa(torch.nn.Module):
+    def __init__(self, num_classes, lora_r=8, lora_alpha=16):
+        super().__init__()
+
+        # Use LoRAMLP in all SAModule/GlobalSAModule/FPModule definitions
+        self.sa1_module = SAModule(0.2, 0.2,LoRAMLP([3 + 3, 64, 64, 128], lora_r, lora_alpha))
+        self.sa2_module = SAModule(0.25, 0.4,LoRAMLP([128 + 3, 128, 128, 256], lora_r,lora_alpha))
+        self.sa3_module = GlobalSAModule(LoRAMLP([256 + 3, 256, 512, 1024], lora_r, lora_alpha))
+
+        self.fp3_module = FPModule(1,LoRAMLP([1024 + 256, 256, 256], lora_r, lora_alpha))
+        self.fp2_module = FPModule(3,LoRAMLP([256 + 128, 256, 128], lora_r, lora_alpha))
+        self.fp1_module = FPModule(3,LoRAMLP([128 + 3, 128, 128, 128], lora_r, lora_alpha))
+
+        # Final classification head
+        self.mlp = LoRAMLP([128, 128, 128, num_classes], lora_r, lora_alpha, dropout=0.5)
+        self.lin1 = lora.Linear(128, 128, r=lora_r, lora_alpha=lora_alpha)
+        self.lin2 = lora.Linear(128, 128, r=lora_r, lora_alpha=lora_alpha)
+        self.lin3 = lora.Linear(128, num_classes, r=lora_r, lora_alpha=lora_alpha)
+        
+
+    def forward(self, data):
+        # identical forward logic as base
+        sa0_out = (data.x, data.pos, data.batch)
+        sa1_out = self.sa1_module(*sa0_out)
+        sa2_out = self.sa2_module(*sa1_out)
+        sa3_out = self.sa3_module(*sa2_out)
+
+        fp3_out = self.fp3_module(*sa3_out, *sa2_out)
+        fp2_out = self.fp2_module(*fp3_out, *sa1_out)
+        x, _, _ = self.fp1_module(*fp2_out, *sa0_out)
+
+        # classification
+        x = self.mlp(x)
+        x = torch.nn.functional.relu(self.lin1(x))
+        x = torch.nn.functional.relu(self.lin2(x))
+        x = self.lin3(x)
+        return torch.nn.functional.log_softmax(x, dim=-1)
