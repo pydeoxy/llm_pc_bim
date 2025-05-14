@@ -63,7 +63,7 @@ def doc_pipe_start(folder_path):
 def main_pipe_start():
     global main_pipe,ifc_pipe, pc_pipe, doc_pipe
     if os.path.exists("config/config.json"):
-        with open("config.json", "r") as f:
+        with open("config/config.json", "r") as f:
             config = json.load(f)  
 
     ifc_pipe = create_ifc_pipeline()
@@ -93,7 +93,7 @@ def main_pipe_start():
     )
 
 def generate_response(message,history):
-    result = main_pipe.run({"query_router":{"query": message},"prompt_builder_query":{"query":message},"pipe_message_router":{"query":message}})
+    result = main_pipe.run({"query_router":{"query": message},"pipe_message_router":{"query":message}})
     return result['pipe_message_router']['answer']
 
 def create_interface():

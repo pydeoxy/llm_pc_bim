@@ -53,19 +53,19 @@ def create_main_pipeline(
     # Define routing conditions
     query_conditions = [         
         {
-            "condition": "{{'ifc' in query|lower}}", 
+            "condition": "{{'ifc' in query.lower()}}", 
             "output": "{{query}}",
             "output_name": "go_to_ifcpipeline",
             "output_type": str,
         },
         {
-            "condition": "{{'point cloud' in query|lower}}",
+            "condition": "{{'point cloud' in query.lower()}}",
             "output": "{{query}}",
             "output_name": "go_to_pcpipeline",
             "output_type": str,
         },     
         {
-            "condition": "{{'ifc' not in query|lower and 'point cloud' not in query|lower}}",
+            "condition": "{{'ifc' not in query.lower() and 'point cloud' not in query.lower()}}",
             "output": "{{query}}",
             "output_name": "go_to_docpipeline",
             "output_type": str,
@@ -146,42 +146,79 @@ def create_main_pipeline(
     prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)  
     prompt_builder_no_websearch = PromptBuilder(template=prompt_template_no_websearch)   
 
+    @component
+    class SafeWebSearch:
+        @component.output_types(documents=List[Document],error=bool,query=str)
+        def run(self, query: str):
+            try:
+                res = web_search.run({"query": query})
+                return {"documents": res["documents"], "error": False, "query":query}
+            except Exception as e:
+                logger.warning(f"Web‐search failed: {e}")
+                return {"documents": [], "error": True, "query":query}
+    safe_web_search = SafeWebSearch()
+
+    web_search_conditions = [
+        {"condition": "{{error}}", 
+         "output": "{{query}}", 
+         "output_name": "web_search_failed", 
+         "output_type": str},
+
+        {"condition": "{{not error}}", 
+         "output": "{{documents}}", 
+         "output_name": "web_search_success", 
+         "output_type": List[Document]},
+    ]
+    web_search_router = ConditionalRouter(web_search_conditions, unsafe=True)
+
     pipeline = Pipeline()
     pipeline.add_component("query_router", query_router)
     pipeline.add_component("doc_pipe", doc_pipe)   
     pipeline.add_component("ifc_pipe", ifc_pipe)   
-    pipeline.add_component("pc_pipe", pc_pipe)    
+    pipeline.add_component("pc_pipe", pc_pipe) 
     pipeline.add_component("prompt_builder_query", prompt_builder_query)
     pipeline.add_component("prompt_joiner", prompt_joiner)
     pipeline.add_component("llm", llm)
     pipeline.add_component("reply_router", reply_router)  
     pipeline.add_component("pipe_message_joiner", pipe_message_joiner)
-    pipeline.add_component("pipe_message_router", pipe_message_router)
-    pipeline.add_component("web_search", web_search)
+    pipeline.add_component("pipe_message_router", pipe_message_router)  
+    pipeline.add_component("safe_web_search", safe_web_search)    
+    pipeline.add_component("web_search_router", web_search_router)
     pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
     pipeline.add_component("prompt_builder_no_websearch", prompt_builder_no_websearch)
+    #pipeline.add_component("final_output", final_output)
 
     # Connect components based on routing        
     pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
     pipeline.connect("query_router.go_to_ifcpipeline", "ifc_pipe.query") 
     pipeline.connect("query_router.go_to_docpipeline", "doc_pipe.query")
+    pipeline.connect("query_router.go_to_docpipeline", "prompt_builder_query.query")
     pipeline.connect("doc_pipe.documents", "prompt_builder_query.documents")
     pipeline.connect("prompt_builder_query", "prompt_joiner")
     pipeline.connect("prompt_joiner", "llm")
     pipeline.connect("llm.replies", "reply_router")
     pipeline.connect("reply_router.value", "pipe_message_joiner")
     pipeline.connect("ifc_pipe.pipe_message","pipe_message_joiner")
-    pipeline.connect("pc_pipe.pipe_message","pipe_message_joiner")
-    pipeline.connect("pipe_message_joiner.value","pipe_message_router")
-    try:
-        pipeline.connect("pipe_message_router.go_to_websearch", "web_search.query")
-        pipeline.connect("pipe_message_router.go_to_websearch", "prompt_builder_after_websearch.query")
-        pipeline.connect("web_search.documents", "prompt_builder_after_websearch.documents")
-        pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")    
-    except Exception as e:
-        logger.error(f"Pipeline failed ({e}), using LLM directly.")
-        pipeline.connect("pipe_message_router.go_to_websearch","prompt_builder_no_websearch.query")
-        pipeline.connect("prompt_builder_no_websearch", "prompt_joiner")  
+    pipeline.connect("pc_pipe.pipe_message","pipe_message_joiner")    
+    pipeline.connect("pipe_message_joiner.value","pipe_message_router") 
+    #pipeline.connect("pipe_message_router.answer", "final_output.answer") 
+    
+    
+    # Web search handling
+    pipeline.connect("pipe_message_router.go_to_websearch", "safe_web_search.query")
+    pipeline.connect("safe_web_search.documents", "web_search_router.documents")
+    pipeline.connect("safe_web_search.error", "web_search_router.error")
+    pipeline.connect("safe_web_search.query", "web_search_router.query")
+
+    pipeline.connect("web_search_router.web_search_success", "prompt_builder_after_websearch.documents")
+    pipeline.connect("web_search_router.web_search_failed", "prompt_builder_no_websearch.query")
+
+    pipeline.connect("web_search_router.web_search_success", "prompt_builder_after_websearch.documents")
+    pipeline.connect("pipe_message_router.go_to_websearch", "prompt_builder_after_websearch.query")
+    pipeline.connect("prompt_builder_after_websearch", "prompt_joiner")
+
+    pipeline.connect("web_search_router.web_search_failed", "prompt_builder_no_websearch.query")
+    pipeline.connect("prompt_builder_no_websearch", "prompt_joiner")
     
     return pipeline
 
@@ -226,13 +263,13 @@ if __name__ == "__main__":
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
     #query = "What is the capital of Finland?"
-    #query = "What is SmartLab?"
+    query = "What is SmartLab?"
     #query = "Who are involved in the project SmartLab?"
     #query= "How many IfcWindow are there in the IFC file?"
-    query= "What is ifc schema?"
+    #query= "What is ifc schema?"
     #query="How many points are there in the point cloud?"
 
-    result = main_pipe.run({"query_router":{"query": query},"prompt_builder_query":{"query":query},"pipe_message_router":{"query":query}})
+    result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})#,"prompt_builder_query":{"query":query}})
     print(result)
 
    
