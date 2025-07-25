@@ -77,7 +77,6 @@ def main_pipe_start():
         huggingface_pipeline_kwargs={
             "device_map": llm_config["device_map"],
             "torch_dtype": llm_config["torch_dtype"],        
-            #"model_kwargs": {"use_auth_token": llm_config["huggingface"]["use_auth_token"]}
         },
         generation_kwargs=llm_config["generation"]
     )
@@ -140,6 +139,7 @@ if __name__ == "__main__":
     interface = create_interface()
     interface.launch(inbrowser = True)
 
+    # Testing Q&A
     '''
     def generate_response(message):
         result = main_pipe.run({"query_router":{"query": message},"pipe_message_router":{"query":message}})

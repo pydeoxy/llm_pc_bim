@@ -112,7 +112,7 @@ def create_main_pipeline(
     @component
     class IfcPipeline:
         """
-        A component generating personal welcome message and making it upper case
+        The ifc pipeline as a component 
         """
         @component.output_types(pipe_message=str)
         def run(self, query:str):
@@ -123,7 +123,7 @@ def create_main_pipeline(
     @component
     class PcPipeline:
         """
-        A component generating personal welcome message and making it upper case
+        The pc pipeline as a component
         """
         @component.output_types(pipe_message=str)
         def run(self, query:str) -> dict:
@@ -134,7 +134,7 @@ def create_main_pipeline(
     @component
     class DocPipeline:
         """
-        A component generating personal welcome message and making it upper case
+        The doc pipeline as a component
         """
         @component.output_types(documents=List[Document])
         def run(self, query:str) -> dict:
@@ -186,7 +186,6 @@ def create_main_pipeline(
     pipeline.add_component("web_search_router", web_search_router)
     pipeline.add_component("prompt_builder_after_websearch", prompt_builder_after_websearch)
     pipeline.add_component("prompt_builder_no_websearch", prompt_builder_no_websearch)
-    #pipeline.add_component("final_output", final_output)
 
     # Connect components based on routing        
     pipeline.connect("query_router.go_to_pcpipeline", "pc_pipe.query") 
@@ -200,9 +199,7 @@ def create_main_pipeline(
     pipeline.connect("reply_router.value", "pipe_message_joiner")
     pipeline.connect("ifc_pipe.pipe_message","pipe_message_joiner")
     pipeline.connect("pc_pipe.pipe_message","pipe_message_joiner")    
-    pipeline.connect("pipe_message_joiner.value","pipe_message_router") 
-    #pipeline.connect("pipe_message_router.answer", "final_output.answer") 
-    
+    pipeline.connect("pipe_message_joiner.value","pipe_message_router")     
     
     # Web search handling
     pipeline.connect("pipe_message_router.go_to_websearch", "safe_web_search.query")
@@ -233,8 +230,7 @@ if __name__ == "__main__":
         model=llm_config["model_name"],
         huggingface_pipeline_kwargs={
             "device_map": llm_config["device_map"],
-            "torch_dtype": llm_config["torch_dtype"],        
-            #"model_kwargs": {"use_auth_token": llm_config["huggingface"]["use_auth_token"]}
+            "torch_dtype": llm_config["torch_dtype"],   
         },
         generation_kwargs=llm_config["generation"]
     )
@@ -262,6 +258,7 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
+    # Testing Q&A
     #query = "What is the capital of Finland?"
     query = "What is SmartLab?"
     #query = "Who are involved in the project SmartLab?"

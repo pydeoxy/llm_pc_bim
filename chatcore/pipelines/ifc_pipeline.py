@@ -29,7 +29,7 @@ class ToolResult:
 def create_ifc_pipeline(
     ) -> Pipeline:
     """
-    Creates and configures the document processing pipeline
+    Creates and configures the IFC processing pipeline
 
     Returns:
         Configured Pipeline instance
@@ -63,6 +63,7 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #ifc_pipe.draw(path="docs/ifc_pipeline_diagram.png")
 
+    # Testing Q&A
     #query="What are the main ifcentities in the ifc file?"
     #query= "How many IfcWindow are there in the IFC file?"
     query= "What is IFC?"
@@ -71,9 +72,5 @@ if __name__ == "__main__":
     result = ifc_pipe.run({"query": query})
 
     print(result)
-    # Contents of tool calling
-    #print(result['tool_invoker']['tool_messages'][0].tool_call_result.result)
-    # Contents of no tool calling
-    #print(result['no_call_helper']['no_call_message'][0].text)
 
 

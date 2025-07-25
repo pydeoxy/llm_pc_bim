@@ -13,7 +13,7 @@ from chatcore.pipelines.ifc_pipeline import ToolResult,QueryToMessage
 def create_pc_pipeline(
     ) -> Pipeline:
     """
-    Creates and configures the document processing pipeline
+    Creates and configures the point cloud processing pipeline
          
     Returns:
         Configured Pipeline instance
@@ -47,6 +47,7 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #pc_pipe.draw(path="docs/pc_pipeline_diagram.png")
 
+    # Tesing Q&A
     query = "Visualize the point cloud"
     #query = "Where is Finland?"
     #query="How many points are there in the point cloud?"

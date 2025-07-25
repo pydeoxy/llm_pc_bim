@@ -8,12 +8,21 @@ from haystack.components.converters.docx import DOCXToDocument
 from haystack.components.converters import TextFileToDocument, PyPDFToDocument
 from haystack.components.joiners.document_joiner import DocumentJoiner
 
+import sys
+import os
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+from chatcore.utils.config_loader import config
+
+# transformer model from yaml config file
 class DocumentManager:
     def __init__(self, folder_path: str = "docs"):
         self.folder_path = Path(folder_path)
         self.document_store = InMemoryDocumentStore()
         self.embedder = SentenceTransformersDocumentEmbedder(
-            model="sentence-transformers/all-MiniLM-L6-v2"
+            model=config["embedding"]
         )
         self.embedder.warm_up()
         self.splitter = DocumentSplitter(

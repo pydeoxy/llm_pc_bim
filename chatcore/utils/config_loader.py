@@ -3,10 +3,10 @@ import torch
 from typing import Dict, Any
 import json
 
+with open("config/settings.yaml") as f:
+    config = yaml.safe_load(f)
+
 def load_llm_config() -> Dict[str, Any]:
-    with open("config/settings.yaml") as f:
-        config = yaml.safe_load(f)
-    
     llm_config = config["llm"]
     
     # Convert string dtype to actual torch dtype

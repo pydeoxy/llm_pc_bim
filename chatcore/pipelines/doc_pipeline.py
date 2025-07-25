@@ -10,6 +10,7 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from chatcore.tools.doc_processing import DocumentManager
+from chatcore.utils.config_loader import config
 
 def create_doc_pipeline(
     document_store: Any,
@@ -18,15 +19,15 @@ def create_doc_pipeline(
     Creates and configures the document processing pipeline
     
     Args:
-        document_manager: Initialized document store
+        document_store: Initialized document store
         
     Returns:
         Configured Pipeline instance
     """
     
     pipeline = Pipeline()
-
-    text_embedder = SentenceTransformersTextEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
+    
+    text_embedder = SentenceTransformersTextEmbedder(model=config["embedding"])
     retriever = InMemoryEmbeddingRetriever(document_store, top_k=5)       
         
     # Add components
@@ -52,6 +53,7 @@ if __name__ == "__main__":
     # Visualizing the pipeline 
     #doc_pipe.draw(path="docs/doc_pipeline_diagram.png")
     
+    # Testing Q&A
     #query = "What is the capital of Finland?"
     query = "Who are involved in the project SmartLab?"
     #query = "What is ifc schema?"
