@@ -6,6 +6,7 @@ from haystack.dataclasses import ChatMessage, ToolCall
 from typing import List
 from haystack.components.tools import ToolInvoker
 import multiprocessing
+import torch
 
 import sys
 import os
@@ -59,13 +60,14 @@ def pc_seg(pc_file_path: str):
     if not os.path.exists(pc_file_path):
         return f"Error: File not found at {pc_file_path}"
     
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset, downpcd = prepare_dataset(pc_file_path)
-    downpcd = run_segmentation(dataset, downpcd)
+    downpcd, message = run_segmentation(dataset, downpcd, device)
     # Return message immediately
-    return "FROM FUNCTION CALL: Point cloud segmentation is starting."
+    return f"FROM FUNCTION CALL: {message}"
 
 pc_seg_tool = Tool(name="pc_seg_tool",
-            description="A tool to do semantic segmentation of a point cloud by its file path.",
+            description="A tool to perform semantic segmentation on a point cloud by its file path.",
             function=pc_seg,
             parameters={"type": "object",
             "properties": {"pc_file_path": {"type": "string"}},
