@@ -259,14 +259,34 @@ if __name__ == "__main__":
     #main_pipe.draw(path="docs/main_pipeline_diagram.png")
     
     # Testing Q&A
-    #query = "What is the capital of Finland?"
-    query = "What is SmartLab?"
-    #query = "Who are involved in the project SmartLab?"
-    #query= "How many IfcWindow are there in the IFC file?"
-    #query= "What is ifc schema?"
-    #query="How many points are there in the point cloud?"
+    queries = [
+        # doc pipeline and RAG
+        "What is SmartLab?", #0
+        "Where is SmartLab located, and what type of space is it?", #1
+        "Who are the main partners of the SmartLab project?", #2
+        "What is the main purpose of SmartLab?", #3
+        "When was SmartLab first opened to third parties, such as startups?", #4
+        "What is special about what’s behind the appliances and walls in SmartLab?", #5
+        "What is the theme of the MINNO project launched in spring 2022?", #6
+        "What kind of user experiences are collected in SmartLab, and how are they used?", #7
+        "How can future smart homes, according to SmartLab’s development, improve well-being?", #8
+        "Which people are mentioned as SmartLab contacts, and what roles do they represent?", #9
+        "Why, according to ABB, is cooperation with Metropolia and Skanska important?", #10
+        "Who are involved in the project SmartLab?", #11
+        # IFC pipeline
+        "What are the main ifcentities in the ifc file?", #12
+        "How many IfcWindow are there in the IFC file?", #13
+        # PC pipeline
+        "Visualize the point cloud.", #14
+        "Perform semantic segmentation on the point cloud.", #15
+        # Others
+        "What is the capital of Finland?", #16
+        "What is ifc schema?", #17
+        ]
 
-    result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})#,"prompt_builder_query":{"query":query}})
+    query = queries[0]
+
+    result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
     print(result)
 
    

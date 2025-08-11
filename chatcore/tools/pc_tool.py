@@ -62,7 +62,9 @@ def pc_seg(pc_file_path: str):
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset, downpcd = prepare_dataset(pc_file_path)
-    downpcd, message = run_segmentation(dataset, downpcd, device)
+    downpcd, message, save_path = run_segmentation(dataset, downpcd, device)
+    # Visualize the result
+    pc_visual(save_path)
     # Return message immediately
     return f"FROM FUNCTION CALL: {message}"
 
@@ -81,7 +83,7 @@ class PcToolCallAssistant:
 
     @component.output_types(helper_messages=List[ChatMessage])
     def run(self, message: ChatMessage) -> dict:
-        tool = tool_locate(message.text,pc_tool_reference)
+        tool = tool_locate(message.text,pc_tool_reference)        
         if tool == "pc_visual_tool":        
             pc_visual_tool_call = ToolCall(
                 tool_name="pc_visual_tool",
@@ -104,35 +106,35 @@ class PcToolCallAssistant:
             return {"helper_messages":[ChatMessage.from_assistant("No function calling found.")]}
 
 
-
 if __name__ == '__main__':   
-
+    
     pcd_path = "docs/SmartLab_2024_E57_Single_5mm.pcd"
-
     
     pc_seg_tool_call = ToolCall(
         tool_name="pc_seg_tool",
         arguments={"pc_file_path": pcd_path}
     )
 
-    message = ChatMessage.from_assistant(tool_calls=[pc_seg_tool_call])
+    message = ChatMessage.from_assistant(tool_calls=[pc_visual_tool,pc_seg_tool_call, no_call_tool])    
     '''
-
     pc_visual_tool_call = ToolCall(
         tool_name="pc_visual_tool",
         arguments={"pc_file_path": pcd_path}
     )
 
-    message = ChatMessage.from_assistant(tool_calls=[pc_visual_tool_call])
-    '''  
-    
+    message = ChatMessage.from_assistant(tool_calls=[pc_visual_tool_call])     
+    '''
     # ToolInvoker initialization and run
     invoker = ToolInvoker(tools=[pc_visual_tool,pc_seg_tool,no_call_tool])
     result = invoker.run(messages=[message])
 
     print(result)
+     
 
-    #query = "How many points are there in the point cloud?"
-    #print(query_similarity(pc_tool_reference["pc_visual_tool"], query))
-    #print(query_similarity(pc_tool_reference["no_call"], query))
+    #query = "Perform semantic segmentation on the point cloud."
+    #query = "Segment the point cloud into semantic classes."
+    query = "Label the points in the cloud with the semantic categories."
+    print(query_similarity(pc_tool_reference["pc_visual_tool"], query))
+    print(query_similarity(pc_tool_reference["pc_seg_tool"], query))
+    print(query_similarity(pc_tool_reference["no_call"], query))
     

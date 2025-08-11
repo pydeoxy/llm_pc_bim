@@ -8,16 +8,16 @@ from torch_geometric.typing import WITH_TORCH_CLUSTER
 from pyg_pointnet2 import PyGPointNet2
 from pc_label_map import color_map, color_map_dict
 import time
-from tqdm import tqdm
+import multiprocessing
 
 # ------------------------------
 # Config
 # ------------------------------
 PCD_PATH = "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Research/data/smartlab/SmartLab_2024_E57_Single_5mm.pcd"
 CHECKPOINT_FILE = "pointnet2_s3dis_transform_seg_x6_45_checkpoint.pth"
-CHUNK_SIZE = 4096
+SAVE_PATH = "docs/downpcd_lablled.pcd"
 BATCH_SIZE = 32  
-NUM_WORKERS = 20  
+NUM_WORKERS = 10  
 
 if not WITH_TORCH_CLUSTER:
     quit("This example requires 'torch-cluster'")
@@ -37,15 +37,6 @@ def normalize_points_corner(points):
     scale[scale == 0] = 1
     return shifted_points / scale
 
-def split_point_cloud(points, features, chunk_size):
-    """Split the point cloud into smaller Data objects."""
-    dataset = []
-    for i in range(0, points.shape[0], chunk_size):
-        p = points[i:i+chunk_size]
-        f = features[i:i+chunk_size]
-        dataset.append(Data(x=f, pos=p))
-    return dataset
-
 def prepare_dataset(pcd_path):
     pcd = o3d.io.read_point_cloud(pcd_path)
     print(f'Loaded point cloud with {len(pcd.points)} points.')
@@ -63,8 +54,12 @@ def prepare_dataset(pcd_path):
     down_normalized = torch.tensor(normalized, dtype=torch.float32)
 
     x = torch.cat([down_colors, down_normalized], dim=1)
-    dataset = split_point_cloud(down_points, x, CHUNK_SIZE)
+    data = Data(x=x, pos=down_points)
+    dataset = [data]
     return dataset, downpcd
+
+def visualize_pcd(pcd):    
+    o3d.visualization.draw_geometries([pcd], point_show_normal=False)    
 
 # ------------------------------
 # Main segmentation function
@@ -94,7 +89,7 @@ def run_segmentation(dataset, downpcd, device):
             all_labels.append(labels.cpu())
     
     total_time = time.time() - start_time
-    print(f"Total inference time: {total_time:.4f} seconds")
+    print(f"Total inference time: {total_time:.4f} seconds")    
     
     # Concatenate all predicted labels
     all_labels = torch.cat(all_labels, dim=0).cpu()    
@@ -106,13 +101,17 @@ def run_segmentation(dataset, downpcd, device):
         color, name = color_map_dict[lbl]
         message += f"\nLabel {lbl} ({name}): {cnt} points"
     message += f"\nTotal points: {all_labels.numel()}"
-
+   
     # Apply colors
     predicted_colors = color_map[labels.cpu().numpy()]
     downpcd.colors = o3d.utility.Vector3dVector(predicted_colors)
     print('Point cloud labelled.')
 
-    return downpcd, message
+    # Save and visualize the result    
+    o3d.io.write_point_cloud(SAVE_PATH, downpcd)
+    message += f'\nLabelled point cloud saved as {SAVE_PATH}.'
+
+    return downpcd, message, SAVE_PATH
 
 # ------------------------------
 # Execution
@@ -120,8 +119,9 @@ def run_segmentation(dataset, downpcd, device):
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset, downpcd = prepare_dataset(PCD_PATH)
-    downpcd, message = run_segmentation(dataset, downpcd, device)
-    print(message)
+    downpcd, message, save_path = run_segmentation(dataset, downpcd, device)
+    o3d.visualization.draw_geometries([downpcd])
+    #print(message)
 
 # Optional visualization
 # o3d.visualization.draw_geometries([downpcd])

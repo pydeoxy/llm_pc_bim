@@ -124,13 +124,11 @@ def create_interface():
         main_pipe_start()
         
         gr.ChatInterface(
-            generate_response,
-            #additional_inputs=[ifc_file_input, pc_file_input, folder_input],
-            #examples=[
-                # Each example must be a list with values for all inputs
-            #    ["What's in the file?", None, "/path/to/your/folder"],
-            #    ["List PDFs in the folder", None, "/path/to/your/docs"],
-            #    ["Summarize the document", "example.txt", None]
+            generate_response,            
+            #examples=[                
+            #    ["What is the project SmartLab?"],
+            #    ["How many IfcWindow are there in the IFC file?"],
+            #    ["Visualize the point cloud."]
             #]
         )
     return demo

@@ -48,8 +48,9 @@ if __name__ == "__main__":
     #pc_pipe.draw(path="docs/pc_pipeline_diagram.png")
 
     # Tesing Q&A
-    #query = "Visualize the point cloud"
-    query ="Perform semantic segmentation on the point cloud"
+    #query = "Visualize the point cloud."
+    #query ="Perform semantic segmentation on the point cloud."
+    query = "Label the points in the cloud with the semantic categories."
     #query = "Where is Finland?"
     #query="How many points are there in the point cloud?"
     # Run the pipeline
