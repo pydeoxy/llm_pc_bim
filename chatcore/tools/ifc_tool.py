@@ -15,9 +15,12 @@ if repo_root not in sys.path:
 from chatcore.utils.helpers import query_similarity
 from chatcore.utils.config_loader import load_path_config
 
+from pc_seg.ifc_sim_train import finetuning_train, SIM_CKPT_PATH
+
 # Reference dictionary of tools and their possible corresponding queries
 ifc_tool_reference = {"ifc_entity_tool":"List the main ifc entities of the IFC file.",
                       "ifc_query_tool":"How many IfcWalls are there in the IFC file?",
+                      "ifc_finetune_tool":"Finetune segmentation model with the IFC file.",
                       "no_call":"ifc file"}
 
 # Tool to get main ifc entities
@@ -25,14 +28,6 @@ def get_main_ifc_entities(ifc_file_path: str):
     """
     Extracts main IFC entities (IfcProject, IfcSite, IfcBuilding, IfcBuildingStorey) 
     and their GUIDs from an IFC file.
-
-    Args:
-        ifc_file_path (str): The path to the IFC file.
-
-    Returns:
-        dict: A dictionary containing the main IFC entities and their GUIDs, 
-              or None if the file cannot be opened or processed.
-              The keys are the entity types, and the values are lists of GUIDs.
     """
     try:
         ifc_file = ifcopenshell.open(ifc_file_path)
@@ -65,13 +60,6 @@ ifc_entity_tool = Tool(name="ifc_entity_tool",
 def query_ifc_entity(ifc_file_path: str, entity_name: str):
     """
     Provide the number of an given IfcEntity in the IFC file.
-
-    Args:
-        ifc_file_path (str): The path to the IFC file.
-        entity_name (str): The name of IfcEntity to be queried.
-
-    Returns:
-        dict: A dictionary containing the IfcEntity queried and its total number.
     """
     try:
         ifc_file = ifcopenshell.open(ifc_file_path)
@@ -90,16 +78,29 @@ ifc_query_tool = Tool(name="ifc_query_tool",
                            "entity_name":{"type": "string"}},
             "required": ["ifc_file_path", "entity_name"]})
 
+# Tool to train fine-tuning ponitnet++ model with point cloud simulated from IFC file
+def finetuning_with_ifc(ifc_file_path: str):
+    """
+    Generate simulated point cloud from an IFC file.
+    Fine-tune the pretrained PointNet++ model with the simulated data. 
+    """
+    try:
+        finetuning_train(ifc_file_path)  
+        return f"Fine-tuned segmentation model saved as {SIM_CKPT_PATH}. You can segment the point cloud with this model."      
+    except IOError:
+        print(f"Error: Could not open point cloud file at {ifc_file_path}")    
+
+ifc_finetune_tool = Tool(name="ifc_finetune_tool",
+            description="A tool to fine-tune the segmentation model from an IFC file.",
+            function=finetuning_with_ifc,
+            parameters={"type": "object",
+            "properties": {"ifc_file_path": {"type": "string"}},
+            "required": ["ifc_file_path"]})
+
 # Tool to skip function calling
 def no_call(query: str):
     """
     Skip function calling for queries not related to functions.
-
-    Args:
-        User's query.
-
-    Returns:
-        str: No functions founded.
     """ 
     #file_name = os.path.basename(ifc_file_path)      
     return f"no_answer: No functions found for query - '{query}'."
@@ -151,6 +152,12 @@ class IfcToolCallAssistant:
                            "entity_name": extract_ifc_entity_name(message.text)}
                 )
             return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_query_tool_call])]}
+        elif tool == "ifc_finetune_tool":
+            ifc_finetune_tool_call = ToolCall(
+                tool_name="ifc_finetune_tool",
+                arguments={"ifc_file_path": paths["ifc_file_path"]}
+                )
+            return {"helper_messages":[ChatMessage.from_assistant(tool_calls=[ifc_finetune_tool_call])]}
         elif tool == "no_call":
             no_call_tool_call = ToolCall(
                 tool_name="no_call_tool",

@@ -5,7 +5,7 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.typing import WITH_TORCH_CLUSTER
-from pyg_pointnet2 import PyGPointNet2
+from pyg_pointnet2 import PyGPointNet2NoColor
 from pc_label_map import color_map, color_map_dict
 import time
 import multiprocessing
@@ -13,8 +13,7 @@ import multiprocessing
 # ------------------------------
 # Config
 # ------------------------------
-PCD_PATH = "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Research/data/smartlab/SmartLab_2024_E57_Single_5mm.pcd"
-CHECKPOINT_FILE = "pointnet2_s3dis_transform_seg_x6_45_checkpoint.pth"
+
 SAVE_PATH = "docs/downpcd_lablled.pcd"
 BATCH_SIZE = 32  
 NUM_WORKERS = 10  
@@ -53,8 +52,7 @@ def prepare_dataset(pcd_path):
     down_colors = torch.tensor(np.array(downpcd.colors), dtype=torch.float32)
     down_normalized = torch.tensor(normalized, dtype=torch.float32)
 
-    x = torch.cat([down_colors, down_normalized], dim=1)
-    data = Data(x=x, pos=down_points)
+    data = Data(x=down_normalized, pos=down_points)
     dataset = [data]
     return dataset, downpcd
 
@@ -64,14 +62,14 @@ def visualize_pcd(pcd):
 # ------------------------------
 # Main segmentation function
 # ------------------------------
-def run_segmentation(dataset, downpcd, device):
+def run_segmentation(dataset, downpcd, device, model_file_path):
     message = ""
     custom_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False,
                                num_workers=NUM_WORKERS, pin_memory=True)
     print('Data prepared for inference.')
 
-    model = PyGPointNet2(num_classes=13).to(device)
-    model_file_path = os.path.join(os.path.dirname(__file__), "checkpoints", CHECKPOINT_FILE)
+    model = PyGPointNet2NoColor(num_classes=13).to(device)
+    #model_file_path = os.path.join(os.path.dirname(__file__), "checkpoints", CHECKPOINT_FILE)
 
     checkpoint = torch.load(model_file_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -117,9 +115,11 @@ def run_segmentation(dataset, downpcd, device):
 # Execution
 # ------------------------------
 if __name__ == "__main__":
+    pcd_path = "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Research/data/smartlab/SmartLab_2024_E57_Single_5mm.pcd"
+    model_file_path = "pc_seg/checkpoints/pointnet2_smartlab_sim_finetuned.pth"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dataset, downpcd = prepare_dataset(PCD_PATH)
-    downpcd, message, save_path = run_segmentation(dataset, downpcd, device)
+    dataset, downpcd = prepare_dataset(pcd_path)
+    downpcd, message, save_path = run_segmentation(dataset, downpcd, device, model_file_path)
     o3d.visualization.draw_geometries([downpcd])
     #print(message)
 

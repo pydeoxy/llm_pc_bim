@@ -17,9 +17,9 @@ from torch_geometric.typing import WITH_TORCH_CLUSTER
 if not WITH_TORCH_CLUSTER:
     quit("This example requires 'torch-cluster'")
 
-from pc_label_map import color_map, color_map_dict
-from pc_dataset import H5PCDataset
-from pyg_pointnet2 import PyGPointNet2NoColor
+from pc_seg.pc_label_map import color_map, color_map_dict
+from pc_seg.pc_dataset import H5PCDataset
+from pc_seg.pyg_pointnet2 import PyGPointNet2NoColor
 
 # ------------------------------
 # Config
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     #o3d.visualization.draw_geometries([pcd])
     #pcd_to_h5(pcd, SIM_H5_PATH)
 
-    finetuning_train(ifc_file_path)
+    #finetuning_train(ifc_file_path)
 
     '''device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = PyGPointNet2NoColor(num_classes=13).to(device)
@@ -467,3 +467,4 @@ if __name__ == "__main__":
     model_state_dict = checkpoint['model_state_dict']
     model.load_state_dict(model_state_dict, strict=True)  
     model.eval()'''
+    

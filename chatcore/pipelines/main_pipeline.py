@@ -276,15 +276,16 @@ if __name__ == "__main__":
         # IFC pipeline
         "What are the main ifcentities in the ifc file?", #12
         "How many IfcWindow are there in the IFC file?", #13
+        "Finetune sementation model with the IFC file." #14
         # PC pipeline
-        "Visualize the point cloud.", #14
-        "Perform semantic segmentation on the point cloud.", #15
+        "Visualize the point cloud.", #15
+        "Perform semantic segmentation on the point cloud.", #16
         # Others
-        "What is the capital of Finland?", #16
-        "What is ifc schema?", #17
+        "What is the capital of Finland?", #17
+        "What is ifc schema?", #18
         ]
 
-    query = queries[0]
+    query = queries[15]
 
     result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
     print(result)

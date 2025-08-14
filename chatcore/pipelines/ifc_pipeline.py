@@ -10,7 +10,7 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from chatcore.tools.ifc_tool import ifc_entity_tool, ifc_query_tool,no_call_tool, IfcToolCallAssistant
+from chatcore.tools.ifc_tool import ifc_entity_tool, ifc_query_tool, ifc_finetune_tool, no_call_tool, IfcToolCallAssistant
 
 @component
 class QueryToMessage:
@@ -38,7 +38,7 @@ def create_ifc_pipeline(
     # Initialize the ToolInvoker with the ifc tools
     query_to_message = QueryToMessage()
     ifc_tool_checker = IfcToolCallAssistant()
-    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool,no_call_tool])
+    tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool,ifc_finetune_tool,no_call_tool])
     tool_result = ToolResult()
 
     # Create the pipeline
