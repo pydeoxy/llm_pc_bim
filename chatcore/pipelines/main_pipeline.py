@@ -221,6 +221,7 @@ def create_main_pipeline(
 
 # Test the pipeline
 if __name__ == "__main__":
+    import random
     from chatcore.utils.config_loader import load_llm_config
     from duckduckgo_api_haystack import DuckduckgoApiWebSearch    
     
@@ -285,8 +286,27 @@ if __name__ == "__main__":
         "What is ifc schema?", #18
         ]
 
-    query = queries[15]
+    '''
+    records = []
+    queries_rag = queries[:12]
+    random.shuffle(queries_rag)
+    for query in queries_rag:
+        result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
+        answer = result['pipe_message_router']['answer']
+        records.append({'Query':query,'Answer':answer})
+    
+    from pprint import pprint
+    pprint(records)    
+    
+    records_file = 'docs/qa_records.txt'
+    with open(records_file, "w", encoding="utf-8") as f:
+        for i, qa in enumerate(records, start=1):
+            f.write(f"Q{i}: {qa['Query']}\n")
+            f.write(f"A{i}: {qa['Answer']}\n")
+            f.write("\n")
 
+    '''
+    query = queries[6]
     result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
     print(result)
 
