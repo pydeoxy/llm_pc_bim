@@ -136,12 +136,14 @@ if __name__ == '__main__':
 
     print(result)
     '''
-    print(CHECKPOINT_FILE)
+    
+    queries = ["Visualize the point cloud file.",
+               "Render the point cloud file for viewing.",
+               "Show the point cloud file visually.",
+               "Perform semantic segmentation on the point cloud.",
+               "Segment the point cloud into semantic classes.",
+               "Label the points in the cloud with the semantic categories."]
+    for q in queries:
+        print(tool_locate(q,pc_tool_reference))      
 
-    #query = "Perform semantic segmentation on the point cloud."
-    #query = "Segment the point cloud into semantic classes."
-    #query = "Label the points in the cloud with the semantic categories."
-    #print(query_similarity(pc_tool_reference["pc_visual_tool"], query))
-    #print(query_similarity(pc_tool_reference["pc_seg_tool"], query))
-    #print(query_similarity(pc_tool_reference["no_call"], query))
     

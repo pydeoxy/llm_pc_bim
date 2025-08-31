@@ -192,13 +192,20 @@ if __name__ == '__main__':
     #print(result)
 
     # Test tool calling
-    #query = "What are the main ifcentities in the ifc file?"    
-    #query = "How many IfcWindow are there in the ifc file?"
-    query = "What is the IFC schema of the file?"
-    print(query_similarity(ifc_tool_reference["ifc_entity_tool"], query))
-    print(query_similarity(ifc_tool_reference["ifc_query_tool"], query))      
-    print(query_similarity(ifc_tool_reference["no_call"], query))                     
-                
+
+    queries = ["What are the main ifcentities in the ifc file?",
+                "How many IfcWindow are there in the ifc file?",
+                "What is the total number of IfcWindow elements in the IFC file?",
+                "What is the quantity of IfcWindow components present in the IFC file?",
+                "Finetune segmentation model with the IFC file.",
+                "Use the IFC file to fine-tune the segmentation model.",
+                "Train the segmentation model further on the IFC file.",
+                "What is the IFC schema of the file?"]
+    for q in queries:
+        print(tool_locate(q,ifc_tool_reference))   
+
+
+    '''query = "What is the IFC schema of the file?"    
 
     user_message = ChatMessage.from_user(query)
     ifc_file_path= "C:/Users/yanpe/OneDrive - Metropolia Ammattikorkeakoulu Oy/Courses/CRBE/IFC/BIM4EEB-TUD-2x3.ifc"
@@ -208,4 +215,4 @@ if __name__ == '__main__':
 
     tool_invoker = ToolInvoker(tools=[ifc_entity_tool,ifc_query_tool,no_call_tool])
     result = tool_invoker.run(answer["helper_messages"])
-    print(result)
+    print(result)'''
