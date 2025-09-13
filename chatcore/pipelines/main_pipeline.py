@@ -19,6 +19,7 @@ from chatcore.pipelines.ifc_pipeline import create_ifc_pipeline
 from chatcore.pipelines.pc_pipeline import create_pc_pipeline
 
 from chatcore.utils.prompts import prompt_template_doc,prompt_template_after_websearch,prompt_template_no_websearch
+from chatcore.utils.prompts import prompt_template_doc_llama3,prompt_template_after_websearch_llama3,prompt_template_no_websearch_llama3
 from chatcore.tools.doc_processing import DocumentManager
 
 import logging
@@ -45,9 +46,11 @@ def create_main_pipeline(
         Configured Pipeline instance
     """
 
-    prompt_builder_query = PromptBuilder(template=prompt_template_doc)
+    #prompt_builder_query = PromptBuilder(template=prompt_template_doc)
+    prompt_builder_query = PromptBuilder(template=prompt_template_doc_llama3)
     prompt_joiner  = BranchJoiner(str)
-    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)
+    #prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)
+    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch_llama3)
 
 
     # Define routing conditions
@@ -143,8 +146,8 @@ def create_main_pipeline(
     doc_pipe = DocPipeline()   
     
     pipe_message_joiner = BranchJoiner(str)
-    prompt_builder_after_websearch = PromptBuilder(template=prompt_template_after_websearch)  
-    prompt_builder_no_websearch = PromptBuilder(template=prompt_template_no_websearch)   
+    #prompt_builder_no_websearch = PromptBuilder(template=prompt_template_no_websearch)   
+    prompt_builder_no_websearch = PromptBuilder(template=prompt_template_no_websearch_llama3)   
 
     @component
     class SafeWebSearch:
@@ -222,6 +225,8 @@ def create_main_pipeline(
 # Test the pipeline
 if __name__ == "__main__":
     import random
+    import json
+    import time
     from chatcore.utils.config_loader import load_llm_config
     from duckduckgo_api_haystack import DuckduckgoApiWebSearch    
     
@@ -275,7 +280,7 @@ if __name__ == "__main__":
         "Why, according to ABB, is cooperation with Metropolia and Skanska important?", #10
         "Who are involved in the project SmartLab?", #11
         # IFC pipeline
-        "What are the main ifcentities in the ifc file?", #12
+        "What are the main IFC entities in the IFC file?", #12
         "How many IfcWindow are there in the IFC file?", #13
         "Finetune sementation model with the IFC file." #14
         # PC pipeline
@@ -286,28 +291,34 @@ if __name__ == "__main__":
         "What is ifc schema?", #18
         ]
 
-    '''
+    
     records = []
+    records.append({'Model':llm_config["model_name"].split("/")[1]})
     queries_rag = queries[:12]
-    random.shuffle(queries_rag)
+    #random.shuffle(queries_rag)
+    start_time = time.perf_counter()
     for query in queries_rag:
+        #print(query)
         result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
         answer = result['pipe_message_router']['answer']
-        records.append({'Query':query,'Answer':answer})
-    
+        records.append({'Query':query,'Response':answer})
+        #print(answer)
+    total_time = time.perf_counter() - start_time
+    records.append({'Response Time':f'{total_time:.2f}s'})
     from pprint import pprint
     pprint(records)    
     
-    records_file = 'docs/qa_records.txt'
-    with open(records_file, "w", encoding="utf-8") as f:
-        for i, qa in enumerate(records, start=1):
-            f.write(f"Q{i}: {qa['Query']}\n")
-            f.write(f"A{i}: {qa['Answer']}\n")
-            f.write("\n")
+    # Save records to a JSON file
+    records_model = llm_config["model_name"].split("/")[1].rsplit("-", 1)[0]    
+    records_json = f"docs/qa_records_{records_model}_4.json"
+    with open(records_json, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=4, ensure_ascii=False)
+    print(f"Records saved as {records_json}")
 
     '''
-    query = queries[6]
+    query = queries[0]
     result = main_pipe.run({"query_router":{"query": query},"pipe_message_router":{"query":query}})
     print(result)
+    '''
 
    

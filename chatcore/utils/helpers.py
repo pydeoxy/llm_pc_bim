@@ -3,11 +3,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 import re
 
 def query_similarity(ref,query):
-    model = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight model
+    model = SentenceTransformer('all-MiniLM-L6-v2')  
     embeddings = model.encode([ref, query])
     similarity_score = cosine_similarity(
-        [embeddings[0]],  # Reference embedding
-        [embeddings[1]]   # Comparison embedding
+        [embeddings[0]],  
+        [embeddings[1]]   
     )[0][0]
 
     return similarity_score

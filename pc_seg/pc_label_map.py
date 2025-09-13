@@ -1,9 +1,6 @@
 import numpy as np
 
 # Classes in the S3DIS dataset
-# class_names = ('ceiling', 'floor', 'wall', 'beam', 'column', 'window', 'door',
-#               'table', 'chair', 'sofa', 'bookcase', 'board', 'clutter')
-
 # Define a fixed color map for 13 labels
 color_map_dict = {
     0:[[1.0, 0.0, 0.0],'ceiling'],  # Label 0: Red 

@@ -1,7 +1,6 @@
 import ifcopenshell
 import time
 import numpy as np
-import pandas as pd
 from ifcopenshell import geom
 import open3d as o3d
 import h5py

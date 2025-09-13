@@ -69,8 +69,7 @@ def run_segmentation(dataset, downpcd, device, model_file_path):
     print('Data prepared for inference.')
 
     model = PyGPointNet2NoColor(num_classes=13).to(device)
-    #model_file_path = os.path.join(os.path.dirname(__file__), "checkpoints", CHECKPOINT_FILE)
-
+    
     checkpoint = torch.load(model_file_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -123,5 +122,3 @@ if __name__ == "__main__":
     o3d.visualization.draw_geometries([downpcd])
     #print(message)
 
-# Optional visualization
-# o3d.visualization.draw_geometries([downpcd])

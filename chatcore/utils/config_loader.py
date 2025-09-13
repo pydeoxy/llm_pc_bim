@@ -3,7 +3,7 @@ import torch
 from typing import Dict, Any
 import json
 
-with open("../config/settings.yaml") as f:
+with open("config/settings.yaml") as f:
     config = yaml.safe_load(f)
 
 def load_llm_config() -> Dict[str, Any]:
@@ -20,6 +20,6 @@ def load_llm_config() -> Dict[str, Any]:
     return llm_config
 
 def load_path_config():
-    with open("../config/config.json", "r") as f:
+    with open("config/config.json", "r") as f:
         path_config = json.load(f)
     return path_config
